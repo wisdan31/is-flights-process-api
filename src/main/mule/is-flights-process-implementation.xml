@@ -28,31 +28,6 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 				<http:success-status-code-validator values="200..499" />
 			</http:response-validator>
 		</http:request>
-		<flow-ref doc:name="responseProcessingSubFlow" doc:id="ed7f5ff2-110e-4176-9801-a8c5929daf00" name="responseProcessingSubFlow"/>
-	</sub-flow>
-	<sub-flow name="responseProcessingSubFlow" doc:id="bbf6d617-c128-4bf8-9e23-783a5e0950df" >
-		<choice doc:name="Choice" doc:id="23adf753-9aea-4ac8-af02-307ca2a9cc3e" >
-			<when expression="#[attributes.statusCode &lt; 400]">
-				<ee:transform doc:name="response" doc:id="d6f11c2f-1eb2-4d22-8b38-12c4c7ea9375" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</when>
-			<otherwise >
-				<set-variable value="#[attributes.statusCode]" doc:name="httpStatus" doc:id="a2236237-0c6b-4620-b97f-d328d395eb83" variableName="httpStatus"/>
-				<ee:transform doc:name="error" doc:id="37dbd514-1628-4b86-af48-3abd456f8964" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-payload]]></ee:set-payload>
-					</ee:message>
-				</ee:transform>
-			</otherwise>
-		</choice>
+		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
 	</sub-flow>
 </mule>

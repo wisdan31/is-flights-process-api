@@ -12,4 +12,5 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		<http:request-connection host="${system-api.host}" port="${system-api.port}" connectionIdleTimeout="9999999"/>
 	</http:request-config>
 	<global-property doc:name="Global Property" doc:id="0bdae9b3-1828-427c-a647-4cdc398957c7" name="env" value="local" />
+	<import doc:name="Import" doc:id="ccbe8c71-464b-4790-b081-3f6444fabc8a" file="global-error-handler.xml" />
 </mule>
