@@ -10,8 +10,10 @@
                 <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:router config-ref="is-flights-process-api-config" />
-        <error-handler ref="global_error_handler" /> 
+        <flow-ref doc:name="logInitialRequest" doc:id="c93a739d-1def-46fb-b582-96a7a20e7dba" name="logInitialRequest" />
+		<apikit:router config-ref="is-flights-process-api-config" />
+        <flow-ref doc:name="logFinalResponse" doc:id="daa8e1ee-17fb-4b3b-832d-877a1e18afbf" name="logFinalResponse" />
+		<error-handler ref="global_error_handler" /> 
     </flow>
     <flow name="is-flights-process-api-console">
         <http:listener path="/${api.basepath}/console/*" config-ref="HTTP_Listener_config">

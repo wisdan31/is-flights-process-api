@@ -13,4 +13,5 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	</http:request-config>
 	<global-property doc:name="Global Property" doc:id="0bdae9b3-1828-427c-a647-4cdc398957c7" name="env" value="local" />
 	<import doc:name="Import" doc:id="ccbe8c71-464b-4790-b081-3f6444fabc8a" file="global-error-handler.xml" />
+	<import doc:name="Import" doc:id="78ad5026-8703-4fd8-b55f-93b331af7d9e" file="logging.xml" />
 </mule>
