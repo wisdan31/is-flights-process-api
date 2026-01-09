@@ -8,13 +8,17 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<sub-flow name="getFlights" doc:id="cac18073-697e-4ddd-8693-21b49ba8d8c5" >
 		<set-variable value="#[message.attributes.queryParams.destination]" doc:name="destination" doc:id="465179e4-4d8b-49d7-9928-8ef6ed47720b" variableName="destination" />
-		<http:request method="GET" doc:name="GET sa /flights" doc:id="c9caf679-5141-45fc-820f-8ccefada0228" config-ref="HTTP_System_Api_config" path="/flights">
+		<http:request doc:name="GET sa /flights" doc:id="c9caf679-5141-45fc-820f-8ccefada0228" config-ref="HTTP_System_Api_config" path="/flights">
 			<http:query-params ><![CDATA[#[output application/java
 ---
 {
 	("destination": vars.destination) if (!isEmpty(vars.destination))
 }]]]></http:query-params>
+			<http:response-validator >
+				<http:success-status-code-validator values="200..599" />
+			</http:response-validator>
 		</http:request>
+		<flow-ref doc:name="responseProcesingSubFlow" doc:id="33532c7f-c9b6-4914-887f-486c97a683e1" name="responseProcessingSubFlow" />
 	</sub-flow>
 	<sub-flow name="getFlightById" doc:id="ba912eb7-751b-4eed-8bdf-7c5bd03fbcca" >
 		<set-variable value="#[attributes.uriParams.flightId]" doc:name="flightId" doc:id="266c126b-c5a7-4c48-9d8b-3373d1cfae8b" variableName="flightId" />
