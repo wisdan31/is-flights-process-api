@@ -16,7 +16,11 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 {
 	("destination": vars.destination) if (!isEmpty(vars.destination))
 }]]]></http:query-params>
+			<http:response-validator >
+				<http:success-status-code-validator values="200..599" />
+			</http:response-validator>
 		</http:request>
+		<flow-ref doc:name="responseProcesingSubFlow" doc:id="33532c7f-c9b6-4914-887f-486c97a683e1" name="responseProcessingSubFlow" />
 	</sub-flow>
 	<sub-flow name="getFlightById" doc:id="ba912eb7-751b-4eed-8bdf-7c5bd03fbcca" >
 		<set-variable value="#[attributes.uriParams.flightId]" doc:name="flightId" doc:id="266c126b-c5a7-4c48-9d8b-3373d1cfae8b" variableName="flightId" />
@@ -29,7 +33,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 	Id : vars.flightId
 }]]]></http:uri-params>
 			<http:response-validator >
-				<http:success-status-code-validator values="200..499" />
+				<http:success-status-code-validator values="0..599" />
 			</http:response-validator>
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
