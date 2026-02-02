@@ -30,3 +30,11 @@ types:
             application/json:
               type: Flight
               example: !include examples/flight-example.json
+
+/country-weather:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include examples/country-weather.json
