@@ -31,10 +31,37 @@ types:
               type: Flight
               example: !include examples/flight-example.json
 
-/country-weather:
-  get:
-    responses:
-      200:
-        body:
-          application/json:
-            example: !include examples/country-weather.json
+/weather:
+  /publish:
+    post:
+      description: Publish provided weather data to the message queue.
+      body:
+        application/json:
+          type: object
+          properties:
+            city:
+              type: string
+              description: Name of the city
+              example: "Kyiv"
+            temperature:
+              type: number
+              description: Temperature in Celsius
+              example: 5.4
+            condition:
+              type: string
+              description: Weather condition description
+              example: "Cloudy"
+      responses:
+        200:
+          description: Weather data published successfully
+          body:
+            application/json:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: "success"
+                message:
+                  type: string
+                  example: "Weather data for Kyiv published"
+
