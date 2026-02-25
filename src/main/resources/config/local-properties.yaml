@@ -9,3 +9,10 @@ system-api:
   basepath: "is-flights-sa/api/${system-api.version}"
   version: "v1"
   timeout: "180000" 
+  
+mq:
+  host: "localhost"
+  port: "5672"
+  username: "guest"
+  password: "guest"
+  

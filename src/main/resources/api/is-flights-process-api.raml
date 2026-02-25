@@ -31,37 +31,9 @@ types:
               type: Flight
               example: !include examples/flight-example.json
 
-/weather:
-  /publish:
-    post:
-      description: Publish provided weather data to the message queue.
-      body:
-        application/json:
-          type: object
-          properties:
-            city:
-              type: string
-              description: Name of the city
-              example: "Kyiv"
-            temperature:
-              type: number
-              description: Temperature in Celsius
-              example: 5.4
-            condition:
-              type: string
-              description: Weather condition description
-              example: "Cloudy"
-      responses:
-        200:
-          description: Weather data published successfully
-          body:
-            application/json:
-              type: object
-              properties:
-                status:
-                  type: string
-                  example: "success"
-                message:
-                  type: string
-                  example: "Weather data for Kyiv published"
-
+/country-events:
+  get:
+    description: Manually trigger countries fetch and publishing to RabbitMQ.
+    responses:
+      200:
+        description: Process started.

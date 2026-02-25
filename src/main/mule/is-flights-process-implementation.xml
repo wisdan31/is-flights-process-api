@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
+		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
+	</amqp:config>
 	<sub-flow name="getFlights" doc:id="cac18073-697e-4ddd-8693-21b49ba8d8c5" >
 		<set-variable value="#[message.attributes.queryParams.destination]" doc:name="destination" doc:id="465179e4-4d8b-49d7-9928-8ef6ed47720b" variableName="destination" />
 		<set-variable value='#[{ "status": "Get American Flights request"}]' doc:name="logMessage" doc:id="abd8ec34-626c-407f-9252-1fee3a8f85b2" variableName="logMessage" />
@@ -37,5 +41,28 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 			</http:response-validator>
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
+	</sub-flow>
+	<flow name="is-flights-process-implementationFlow" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" >
+		<scheduler doc:name="Scheduler" doc:id="66f26e0b-03df-43d3-acfd-094b81a6c4ec" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="300" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
+	</flow>
+	<sub-flow name="publishCountries" doc:id="54f817c8-a5c2-4c29-9d16-92e74655595f" >
+		<http:request doc:name="GET /countries" doc:id="09067d66-5085-4f75-88a9-d77e4f25ae6a" config-ref="HTTP_System_Api_config" path="/countries">
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"region" : "europe"
+}]]]></http:query-params>
+		</http:request>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="3feb2588-6758-494b-ac18-dc9f1ab6041e" >
+			<set-variable value="#[payload.name]" doc:name="country" doc:id="6374107f-3cc9-4343-a31b-a58384509251" variableName="country" />
+			<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="93d6fbbb-0ca3-44b7-9c5e-eb63ac463baf" variableName="city"/>
+			<amqp:publish doc:name="Publish" doc:id="371916a9-f7a2-4470-957a-1917829f6ed5" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
+		</amqp:publish>
+		</parallel-foreach>
 	</sub-flow>
 </mule>
