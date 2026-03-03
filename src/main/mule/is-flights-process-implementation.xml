@@ -66,9 +66,9 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 		</amqp:publish>
 		</parallel-foreach>
 	</sub-flow>
-	<flow name="Listener_1" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
+	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL"/>
-		<set-variable value="#[attributes.ackId]" doc:name="Set Variable" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
 		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
 			<http:query-params ><![CDATA[#[output application/java
 ---
@@ -104,9 +104,32 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<mongo:update-documents doc:name="Upsert to DB" doc:id="f06fe0e3-8a3e-4d9b-83ae-e2fdbef390e9" upsert="true" config-ref="MongoDB_Config" collectionName="weatherSnapshots">
+		<mongo:update-documents doc:name="Upsert to DB" doc:id="f06fe0e3-8a3e-4d9b-83ae-e2fdbef390e9" upsert="true" config-ref="MongoDB_Config" collectionName="weatherSnapshots" target="dbResponse">
 			<mongo:query ><![CDATA[#[{"countryCode": payload.countryCode}]]]></mongo:query>
 		</mongo:update-documents>
+		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
+			<amqp:routing-keys >
+				<amqp:routing-key value="weather.snapshot.fetched" />
+			</amqp:routing-keys>
+		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
+	</flow>
+	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
+		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL"/>
+		<logger level="INFO" doc:name="Logger" doc:id="6401462d-4fde-4c5c-bc12-cc142922bcee" message="#[payload]"/>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
+		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
+		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
+			<when expression="#[vars.visibility &lt; 5000]">
+				<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message="WARN: Reduced visibility. Pay increased attention during flight"/>
+			</when>
+			<when expression="#[vars.visibility &lt; 3000]">
+				<logger level="INFO" doc:name="Logger" doc:id="b00c0f84-c7d2-43e1-a9d2-62961f048648" message="CRITICAL: Low visibility Pay increased attention during flight. Delays possible"/>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="bf4ab1af-9194-43c9-a1ee-1f36c3367047" message="Clear weather. Happy flight!"/>
+			</otherwise>
+		</choice>
+		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 	</flow>
 </mule>
