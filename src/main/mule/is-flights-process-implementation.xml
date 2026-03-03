@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
 	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
 		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
 	</amqp:config>
@@ -42,20 +43,20 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
 	</sub-flow>
-	<flow name="is-flights-process-implementationFlow" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" >
+	<!-- [STUDIO:"is-flights-process-implementationFlow"]<flow name="is-flights-process-implementationFlow" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" initialState="stopped">
 		<scheduler doc:name="Scheduler" doc:id="66f26e0b-03df-43d3-acfd-094b81a6c4ec" >
 			<scheduling-strategy >
 				<fixed-frequency frequency="300" timeUnit="SECONDS"/>
 			</scheduling-strategy>
 		</scheduler>
 		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
-	</flow>
+	</flow> [STUDIO] -->
 	<sub-flow name="publishCountries" doc:id="54f817c8-a5c2-4c29-9d16-92e74655595f" >
 		<http:request doc:name="GET /countries" doc:id="09067d66-5085-4f75-88a9-d77e4f25ae6a" config-ref="HTTP_System_Api_config" path="/countries">
 			<http:query-params><![CDATA[#[output application/java
 ---
 {
-	"region" : "europe"
+	"subregion" : "Eastern Europe"
 }]]]></http:query-params>
 		</http:request>
 		<parallel-foreach doc:name="Parallel For Each" doc:id="3feb2588-6758-494b-ac18-dc9f1ab6041e" >
@@ -65,4 +66,47 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 		</amqp:publish>
 		</parallel-foreach>
 	</sub-flow>
+	<flow name="Listener_1" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
+		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL"/>
+		<set-variable value="#[attributes.ackId]" doc:name="Set Variable" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
+		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"city" : payload.capital.name
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Create weather snapshot" doc:id="df86bc66-417f-472a-9727-f11ef094bbdd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  country: payload.name,
+  countryCode: upper(payload.code default ""),
+  capital: {
+    city: payload.capital.name,
+    longitude: vars.weatherData.location.lon default payload.capital.lng,
+    latitude: vars.weatherData.location.lat default payload.capital.lat,
+    weatherConditions: {
+      visibility: vars.weatherData.weather.visibility default 0,
+      temperature: { 
+        degrees: "Celsius", 
+        current: vars.weatherData.weather.temperature default 0, 
+        max: vars.weatherData.weather.temperature default 0, 
+        min: vars.weatherData.weather.temperature default 0 
+      },
+      pressure: vars.weatherData.weather.pressure default 0,
+      humidity: vars.weatherData.weather.humidity default 0
+    }
+  },
+  lastUpdated: now() as Number
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<mongo:update-documents doc:name="Upsert to DB" doc:id="f06fe0e3-8a3e-4d9b-83ae-e2fdbef390e9" upsert="true" config-ref="MongoDB_Config" collectionName="weatherSnapshots">
+			<mongo:query ><![CDATA[#[{"countryCode": payload.countryCode}]]]></mongo:query>
+		</mongo:update-documents>
+		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
+	</flow>
 </mule>

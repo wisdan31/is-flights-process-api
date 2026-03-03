@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
 	<apikit:config name="is-flights-process-api-config" api="is-flights-process-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" queryParamsStrictValidation="true"/>
 	<configuration-properties doc:name="Configuration properties" doc:id="5687285b-ec79-47da-a0dd-a1d239a96a13" file="config/${env}-properties.yaml" />
 	<http:request-config name="HTTP_System_Api_config" doc:name="HTTP Request configuration" doc:id="aa623a8e-4899-4c2c-940b-b570a8d7bfc3" basePath="${system-api.basepath}" responseTimeout="${system-api.timeout}">
@@ -14,4 +15,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<global-property doc:name="Global Property" doc:id="0bdae9b3-1828-427c-a647-4cdc398957c7" name="env" value="local" />
 	<import doc:name="Import" doc:id="ccbe8c71-464b-4790-b081-3f6444fabc8a" file="global-error-handler.xml" />
 	<import doc:name="Import" doc:id="78ad5026-8703-4fd8-b55f-93b331af7d9e" file="logging.xml" />
+	<mongo:config name="MongoDB_Config" doc:name="MongoDB Config" doc:id="44bc245e-a093-47c2-bbd3-0c4b191779af">
+		<mongo:connection-string-connection connectionString="${mongodb.connection_string}" />
+	</mongo:config>
 </mule>
