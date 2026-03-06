@@ -65,6 +65,7 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 			<amqp:publish doc:name="Publish" doc:id="371916a9-f7a2-4470-957a-1917829f6ed5" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
 		</amqp:publish>
 		</parallel-foreach>
+		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
 	</sub-flow>
 	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL"/>
@@ -92,15 +93,15 @@ output application/json
       visibility: vars.weatherData.weather.visibility default 0,
       temperature: { 
         degrees: "Celsius", 
-        current: vars.weatherData.weather.temperature default 0, 
-        max: vars.weatherData.weather.temperature default 0, 
-        min: vars.weatherData.weather.temperature default 0 
+        current: vars.weatherData.weather.temperature default 0 
+
       },
       pressure: vars.weatherData.weather.pressure default 0,
-      humidity: vars.weatherData.weather.humidity default 0
+      humidity: vars.weatherData.weather.humidity default 0,
+      wind: vars.weatherData.weather.wind
     }
   },
-  lastUpdated: now() as Number
+  lastUpdated: (now() >> "UTC") as String {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"}
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
