@@ -131,4 +131,14 @@ output application/json
 		</choice>
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 	</flow>
+	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
+		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
+		<http:request doc:name="GET /weatherSnapshot" doc:id="8ec9b0c5-c44d-4bf2-8e1b-b50b05057fe5" config-ref="HTTP_System_Api_config" path="/weatherSnapshot">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"countryCode" : vars.countryCode
+}]]]></http:query-params>
+		</http:request>
+	</sub-flow>
 </mule>
