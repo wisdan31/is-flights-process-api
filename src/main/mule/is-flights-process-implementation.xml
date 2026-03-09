@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 	<!-- [STUDIO:"is-flights-process-implementationFlow"]<flow name="is-flights-process-implementationFlow" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" initialState="stopped">
 		<scheduler doc:name="Scheduler" doc:id="66f26e0b-03df-43d3-acfd-094b81a6c4ec" >
 			<scheduling-strategy >
-				<fixed-frequency frequency="300" timeUnit="SECONDS"/>
+				<fixed-frequency frequency="2" timeUnit="MINUTES"/>
 			</scheduling-strategy>
 		</scheduler>
 		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
@@ -105,9 +105,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<mongo:update-documents doc:name="Upsert to DB" doc:id="f06fe0e3-8a3e-4d9b-83ae-e2fdbef390e9" upsert="true" config-ref="MongoDB_Config" collectionName="weatherSnapshots" target="dbResponse">
-			<mongo:query ><![CDATA[#[{"countryCode": payload.countryCode}]]]></mongo:query>
-		</mongo:update-documents>
+		<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult"/>
 		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
