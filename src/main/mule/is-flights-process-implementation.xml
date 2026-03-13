@@ -68,17 +68,17 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
 	</sub-flow>
 	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
-		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL"/>
+		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2"/>
+		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
-		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="197d353b-fb88-4b92-b23e-20be5355daf2" millisBetweenRetries="5000">
-			<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
+		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
 			<http:query-params><![CDATA[#[output application/java
 ---
 {
 	"city" : payload.capital.name
 }]]]></http:query-params>
 		</http:request>
-		</until-successful>
 		<ee:transform doc:name="Create weather snapshot" doc:id="df86bc66-417f-472a-9727-f11ef094bbdd" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -107,25 +107,19 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="955490e4-594a-427c-9c9a-3fb53e47554d" millisBetweenRetries="5000">
-			<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshotA" target="weatherSnapshotResult" />
-		</until-successful>
+		<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
 		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
 		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
-		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="993102ee-7e70-45c5-aafb-3a270ff5d6a9" >
-				<logger level="ERROR" doc:name="Logger" doc:id="94654e11-ff89-4785-b06a-f8bb23efbf9c" message='#["!!! MESSAGE " ++ vars.ackId ++ " IS DEAD. MOVED TO DLQ !!!"]'/>
-				<amqp:reject doc:name="Reject" doc:id="fc46d1ed-8d34-4257-9133-eb9f39412910" ackId="#[vars.ackId]"/>
-			</on-error-propagate>
-		</error-handler>
 	</flow>
 	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
-		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL"/>
-		<logger level="INFO" doc:name="Logger" doc:id="6401462d-4fde-4c5c-bc12-cc142922bcee" message="#[payload]"/>
+		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
@@ -140,12 +134,6 @@ output application/json
 			</otherwise>
 		</choice>
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
-		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="593f233b-d480-4337-9099-b54550f7f869" >
-				<logger level="ERROR" doc:name="Logger" doc:id="700e81fa-8ee0-4349-93d5-8e694d112372" message='#["!!! MESSAGE " ++ vars.ackId ++ " IS DEAD. MOVED TO DLQ !!!"]' />
-				<amqp:reject doc:name="Reject" doc:id="110736f7-ff01-48cf-aeb6-e8c3080aad43" ackId="#[vars.ackId]" />
-			</on-error-propagate>
-		</error-handler>
 	</flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
