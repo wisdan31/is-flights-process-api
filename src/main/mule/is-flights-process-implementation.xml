@@ -74,7 +74,7 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 			<redelivery-policy maxRedeliveryCount="2"/>
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
-		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
+		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather123" target="weatherData">
 			<http:query-params><![CDATA[#[output application/java
 ---
 {
@@ -144,7 +144,12 @@ output application/json
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload ++ {"sourceQueue": "country.city.updated.dlq"}]]></ee:set-payload>
+{
+	messageId: attributes.properties.messageId default correlationId,
+    processedAt: now(),
+    "x-death": attributes.headers.'x-death' default [],
+    "payload": payload
+}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<flow-ref doc:name="saveDeadLetter" doc:id="8c5a1212-0b68-4f00-a79d-db0241c9be73" name="saveDeadLetter"/>
@@ -156,7 +161,12 @@ payload ++ {"sourceQueue": "country.city.updated.dlq"}]]></ee:set-payload>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-payload ++ {"sourceQueue": "alert.evaluate.dlq"}]]></ee:set-payload>
+{
+	messageId: attributes.properties.messageId default correlationId,
+    processedAt: now(),
+    "x-death": attributes.headers.'x-death' default [],
+    "payload": payload
+}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 		<flow-ref doc:name="saveDeadLetter" doc:id="4b9a9869-bc7f-4179-8bbb-cf2e772a5137" name="saveDeadLetter" />
