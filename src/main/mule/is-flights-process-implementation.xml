@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
-http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
 		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
 	</amqp:config>
@@ -135,6 +137,42 @@ output application/json
 		</choice>
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 	</flow>
+	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
+		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" config-ref="AMQP_Config" queueName="country.city.queue.dlq" ackMode="MANUAL"/>
+		<ee:transform doc:name="Transform Message" doc:id="733efc40-967b-4c26-b331-2c7a32d1a266" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload ++ {"sourceQueue": "country.city.updated.dlq"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="saveDeadLetter" doc:id="8c5a1212-0b68-4f00-a79d-db0241c9be73" name="saveDeadLetter"/>
+	</flow>
+	<flow name="alertDLQ_Listener" doc:id="bad66bea-03d2-41c0-a5ee-dec1e1128a33">
+		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" config-ref="AMQP_Config" queueName="alert.evaluate.dlq" ackMode="MANUAL" />
+		<ee:transform doc:name="Transform Message" doc:id="ec5b492c-a6dc-4b51-b2b6-20ed4e66c920">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload ++ {"sourceQueue": "alert.evaluate.dlq"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="saveDeadLetter" doc:id="4b9a9869-bc7f-4179-8bbb-cf2e772a5137" name="saveDeadLetter" />
+	</flow>
+	<flow name="saveDeadLetter" doc:id="22143fa3-e09d-41ad-a5a5-b0e665a71e4a" >
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="d56d8038-d34b-4641-af12-8cf6821fa9cd" variableName="ackId"/>
+		<try doc:name="Try" doc:id="3a377d03-49a0-4211-9ea8-e6e772a98c06" >
+			<http:request doc:name="POST /deadLettersOffice" doc:id="30a15288-ecb4-402d-807d-a89d5fd984b0" method="POST" config-ref="HTTP_System_Api_config" path="/deadLettersOffice" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6c43edfd-4e06-4595-aae5-013d86be2858">
+				<flow-ref doc:name="parkingLotWrite" doc:id="ca0490ac-bfbf-47bd-9a79-ac1abac1e01d" name="parkingLotWrite" />
+			</on-error-continue>
+			</error-handler>
+		</try>
+		<amqp:ack doc:name="" doc:id="d0edea1f-43a1-441c-a7ea-c57b41d4032c" ackId="#[vars.ackId]"/>
+	</flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
 		<http:request doc:name="GET /weatherSnapshot" doc:id="8ec9b0c5-c44d-4bf2-8e1b-b50b05057fe5" config-ref="HTTP_System_Api_config" path="/weatherSnapshot">
@@ -144,5 +182,13 @@ output application/json
 	"countryCode" : vars.countryCode
 }]]]></http:query-params>
 		</http:request>
+	</sub-flow>
+	<sub-flow name="parkingLotWrite" doc:id="3ec8935c-4df9-4d61-a14c-8b639ad30cbd" >
+		<file:write doc:name="Write" doc:id="e6bf227d-2f45-4ea2-b76f-650648c17512" config-ref="parkingLotConfig" path="deadLetters_parkingLot.log" mode="APPEND">
+			<file:content ><![CDATA[#[%dw 2.0
+output text/plain
+---
+write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
+		</file:write>
 	</sub-flow>
 </mule>
