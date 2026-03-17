@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
-	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
-http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd">
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
 		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
 	</amqp:config>
@@ -43,14 +45,14 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
 	</sub-flow>
-	<flow name="Scheduler" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" initialState="stopped">
+	<!-- [STUDIO:"Scheduler"]<flow name="Scheduler" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" initialState="stopped">
 		<scheduler doc:name="Scheduler" doc:id="66f26e0b-03df-43d3-acfd-094b81a6c4ec" >
 			<scheduling-strategy >
 				<fixed-frequency frequency="2" timeUnit="MINUTES"/>
 			</scheduling-strategy>
 		</scheduler>
 		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
-	</flow>
+	</flow> [STUDIO] -->
 	<sub-flow name="publishCountries" doc:id="54f817c8-a5c2-4c29-9d16-92e74655595f" >
 		<http:request doc:name="GET /countries" doc:id="09067d66-5085-4f75-88a9-d77e4f25ae6a" config-ref="HTTP_System_Api_config" path="/countries">
 			<http:query-params><![CDATA[#[output application/java
@@ -68,10 +70,12 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
 	</sub-flow>
 	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
-		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL"/>
+		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2"/>
+		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
 		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
-			<http:query-params ><![CDATA[#[output application/java
+			<http:query-params><![CDATA[#[output application/java
 ---
 {
 	"city" : payload.capital.name
@@ -105,17 +109,34 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult"/>
+		<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
 		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
 		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d7e96f5-d74c-4fd1-b437-15782572d2ae" >
+				<os:store doc:name="country.city.queue_error" doc:id="f7dbfbd7-b68f-49c8-af57-95dd9c466faa" key="country.city.queue_error">
+					<os:value><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+    timestamp: now(),
+    messageId: attributes.properties.messageId default correlationId,
+    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
+    errorDescription: if(error != null) error.description else "No description available"
+}]]]></os:value>
+				</os:store>
+			</on-error-propagate>
+		</error-handler>
 	</flow>
 	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
-		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL"/>
-		<logger level="INFO" doc:name="Logger" doc:id="6401462d-4fde-4c5c-bc12-cc142922bcee" message="#[payload]"/>
+		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
@@ -130,6 +151,75 @@ output application/json
 			</otherwise>
 		</choice>
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d453f991-2f59-4067-bc87-da87b8cda9a3" >
+				<os:store doc:name="alert.evaluate_error" doc:id="15eb90fa-6d45-4525-ad95-925b08c1d2ca" key="alert.evaluate_error" >
+					<os:value ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+    timestamp: now(),
+    messageId: attributes.properties.messageId default correlationId,
+    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
+    errorDescription: if(error != null) error.description else "No description available"
+}]]]></os:value>
+				</os:store>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
+		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" config-ref="AMQP_Config" queueName="country.city.queue.dlq" ackMode="MANUAL"/>
+		<os:retrieve doc:name="country.city.queue_error" doc:id="7ca5a93f-986d-4719-a4f1-401346903611" key="country.city.queue_error" target="error">
+			<os:default-value ><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="733efc40-967b-4c26-b331-2c7a32d1a266" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	messageId: attributes.properties.messageId default correlationId,
+    processedAt: now(),
+    "x-death": attributes.headers.'x-death' default [],
+    "error": vars.error,
+    "payload": payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="saveDeadLetter" doc:id="8c5a1212-0b68-4f00-a79d-db0241c9be73" name="saveDeadLetter"/>
+	</flow>
+	<flow name="alertDLQ_Listener" doc:id="bad66bea-03d2-41c0-a5ee-dec1e1128a33">
+		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" config-ref="AMQP_Config" queueName="alert.evaluate.dlq" ackMode="MANUAL" />
+		<os:retrieve doc:name="alert.evaluate_error" doc:id="9e4f5c02-4d33-4088-9f4b-999f329b7cb9" key="alert.evaluate_error" target="error">
+			<os:default-value><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="ec5b492c-a6dc-4b51-b2b6-20ed4e66c920">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	messageId: attributes.properties.messageId default correlationId,
+    processedAt: now(),
+    "x-death": attributes.headers.'x-death' default [],
+    "error": vars.error,
+    "payload": payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="saveDeadLetter" doc:id="4b9a9869-bc7f-4179-8bbb-cf2e772a5137" name="saveDeadLetter" />
+	</flow>
+	<flow name="saveDeadLetter" doc:id="22143fa3-e09d-41ad-a5a5-b0e665a71e4a" >
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="d56d8038-d34b-4641-af12-8cf6821fa9cd" variableName="ackId"/>
+		<try doc:name="Try" doc:id="3a377d03-49a0-4211-9ea8-e6e772a98c06" >
+			<http:request doc:name="POST /deadLettersOffice" doc:id="30a15288-ecb4-402d-807d-a89d5fd984b0" method="POST" config-ref="HTTP_System_Api_config" path="/deadLettersOffice" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6c43edfd-4e06-4595-aae5-013d86be2858">
+				<flow-ref doc:name="parkingLotWrite" doc:id="ca0490ac-bfbf-47bd-9a79-ac1abac1e01d" name="parkingLotWrite" />
+			</on-error-continue>
+			</error-handler>
+		</try>
+		<amqp:ack doc:name="" doc:id="d0edea1f-43a1-441c-a7ea-c57b41d4032c" ackId="#[vars.ackId]"/>
 	</flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
@@ -140,5 +230,13 @@ output application/json
 	"countryCode" : vars.countryCode
 }]]]></http:query-params>
 		</http:request>
+	</sub-flow>
+	<sub-flow name="parkingLotWrite" doc:id="3ec8935c-4df9-4d61-a14c-8b639ad30cbd" >
+		<file:write doc:name="Write" doc:id="e6bf227d-2f45-4ea2-b76f-650648c17512" config-ref="parkingLotConfig" path="deadLetters_parkingLot.log" mode="APPEND">
+			<file:content ><![CDATA[#[%dw 2.0
+output text/plain
+---
+write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
+		</file:write>
 	</sub-flow>
 </mule>
