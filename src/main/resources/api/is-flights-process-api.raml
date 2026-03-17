@@ -31,12 +31,13 @@ types:
               type: Flight
               example: !include examples/flight-example.json
 
-/country-events:
-  get:
-    description: Manually trigger countries fetch and publishing to RabbitMQ.
-    responses:
-      202:
-        description: Process started.
+/countries:
+  /publish:
+    post:
+      description: Trigger country data publish event
+      responses:
+        202:
+          description: Process started.
 
 /weatherSnapshot:
   get:

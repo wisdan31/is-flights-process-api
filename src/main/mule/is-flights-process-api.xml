@@ -34,10 +34,10 @@
     <flow name="get:\flights\(flightId):is-flights-process-api-config">
         <flow-ref doc:name="getFlightById" doc:id="72d24885-2cb4-430b-9ac2-b8df742c7c8a" name="getFlightById" />
     </flow>
-    <flow name="get:\country-events:is-flights-process-api-config">
-        <flow-ref doc:name="publishCountries" doc:id="ecca682d-850c-41c5-98e9-e5dec32dc2c9" name="publishCountries" />
-    </flow>
     <flow name="get:\weatherSnapshot:is-flights-process-api-config">
         <flow-ref doc:name="getWeatherSnapshot" doc:id="fa0b575a-2f7a-499f-ab9d-406eb8718019" name="getWeatherSnapshot" />
+    </flow>
+    <flow name="post:\countries\publish:is-flights-process-api-config">
+        <flow-ref doc:name="publishCountries" doc:id="ecca682d-850c-41c5-98e9-e5dec32dc2c9" name="publishCountries" />
     </flow>
 </mule>
