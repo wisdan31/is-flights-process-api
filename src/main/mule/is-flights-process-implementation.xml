@@ -65,6 +65,9 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 			<set-variable value="#[payload.name]" doc:name="country" doc:id="6374107f-3cc9-4343-a31b-a58384509251" variableName="country" />
 			<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="93d6fbbb-0ca3-44b7-9c5e-eb63ac463baf" variableName="city"/>
 			<amqp:publish doc:name="Publish" doc:id="371916a9-f7a2-4470-957a-1917829f6ed5" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
+				<amqp:message >
+					<amqp:properties correlationId="#[uuid()]" />
+				</amqp:message>
 		</amqp:publish>
 		</parallel-foreach>
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
@@ -114,11 +117,14 @@ output application/json
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
+			<amqp:message >
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
 		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d7e96f5-d74c-4fd1-b437-15782572d2ae" >
-				<os:store doc:name="country.city.queue_error" doc:id="f7dbfbd7-b68f-49c8-af57-95dd9c466faa" key="country.city.queue_error">
+				<os:store doc:name="message_error_uuid" doc:id="f7dbfbd7-b68f-49c8-af57-95dd9c466faa" key='#["message_error_" ++ correlationId]'>
 					<os:value><![CDATA[#[%dw 2.0
 output application/json
 ---
@@ -153,7 +159,7 @@ output application/json
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d453f991-2f59-4067-bc87-da87b8cda9a3" >
-				<os:store doc:name="alert.evaluate_error" doc:id="15eb90fa-6d45-4525-ad95-925b08c1d2ca" key="alert.evaluate_error" >
+				<os:store doc:name="alert.evaluate_error" doc:id="15eb90fa-6d45-4525-ad95-925b08c1d2ca" key='#["message_error_" ++ correlationId]' >
 					<os:value ><![CDATA[#[%dw 2.0
 output application/json
 ---
@@ -169,7 +175,7 @@ output application/json
 	</flow>
 	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
 		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" config-ref="AMQP_Config" queueName="country.city.queue.dlq" ackMode="MANUAL"/>
-		<os:retrieve doc:name="country.city.queue_error" doc:id="7ca5a93f-986d-4719-a4f1-401346903611" key="country.city.queue_error" target="error">
+		<os:retrieve doc:name="message_error_uuid" doc:id="7ca5a93f-986d-4719-a4f1-401346903611" key='#["message_error_" ++ correlationId]' target="error">
 			<os:default-value ><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
 		</os:retrieve>
 		<ee:transform doc:name="Transform Message" doc:id="733efc40-967b-4c26-b331-2c7a32d1a266" >
@@ -190,7 +196,7 @@ output application/json
 	</flow>
 	<flow name="alertDLQ_Listener" doc:id="bad66bea-03d2-41c0-a5ee-dec1e1128a33">
 		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" config-ref="AMQP_Config" queueName="alert.evaluate.dlq" ackMode="MANUAL" />
-		<os:retrieve doc:name="alert.evaluate_error" doc:id="9e4f5c02-4d33-4088-9f4b-999f329b7cb9" key="alert.evaluate_error" target="error">
+		<os:retrieve doc:name="message_error_uuid" doc:id="9e4f5c02-4d33-4088-9f4b-999f329b7cb9" key='#["message_error_" ++ correlationId]' target="error">
 			<os:default-value><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
 		</os:retrieve>
 		<ee:transform doc:name="Transform Message" doc:id="ec5b492c-a6dc-4b51-b2b6-20ed4e66c920">
