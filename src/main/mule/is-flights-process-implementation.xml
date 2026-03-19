@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:os="http://www.mulesoft.org/schema/mule/os"
-	xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
-	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
 http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
-http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
 	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
 		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
 	</amqp:config>
@@ -76,7 +77,9 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL">
 			<redelivery-policy maxRedeliveryCount="2"/>
 		</amqp:listener>
-		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId"/>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId" />
+		<json:validate-schema doc:name="Validate schema" doc:id="95a5586a-1b4d-4605-ac99-8b942fd1f30b" schema="api/schemas/country-schema.json">
+		</json:validate-schema>
 		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
 			<http:query-params><![CDATA[#[output application/java
 ---
@@ -123,18 +126,12 @@ output application/json
 		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
 		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8cd44cb7-ad0c-45ff-9306-d53df1d2f882" type="JSON:SCHEMA_NOT_HONOURED">
+				<flow-ref doc:name="saveErrorToObjectStore" doc:id="f6051b32-c1a2-431d-8954-cc5ea2a82b08" name="saveErrorToObjectStore"/>
+				<amqp:reject doc:name="Reject" doc:id="3b7d15e9-6a68-4b97-bdfc-73d9e1ff02ad" ackId="#[vars.ackId]" />
+			</on-error-continue>
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d7e96f5-d74c-4fd1-b437-15782572d2ae" >
-				<os:store doc:name="message_error_uuid" doc:id="f7dbfbd7-b68f-49c8-af57-95dd9c466faa" key='#["message_error_" ++ correlationId]'>
-					<os:value><![CDATA[#[%dw 2.0
-output application/json
----
-{
-    timestamp: now(),
-    messageId: attributes.properties.messageId default correlationId,
-    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
-    errorDescription: if(error != null) error.description else "No description available"
-}]]]></os:value>
-				</os:store>
+				<flow-ref doc:name="saveErrorToObjectStore" doc:id="e55e3a31-241d-4ec6-bec5-a83241ad19e0" name="saveErrorToObjectStore" />
 			</on-error-propagate>
 		</error-handler>
 	</flow>
@@ -142,8 +139,10 @@ output application/json
 		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL">
 			<redelivery-policy maxRedeliveryCount="2" />
 		</amqp:listener>
-		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
+		<json:validate-schema doc:name="Validate schema" doc:id="7e9d778a-c94d-408f-b6cb-09bd131e62f9" schema="api/schemas/weather-schema.json" >
+		</json:validate-schema>
+		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
 			<when expression="#[vars.visibility &lt; 5000]">
@@ -157,19 +156,13 @@ output application/json
 			</otherwise>
 		</choice>
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
-		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d453f991-2f59-4067-bc87-da87b8cda9a3" >
-				<os:store doc:name="alert.evaluate_error" doc:id="15eb90fa-6d45-4525-ad95-925b08c1d2ca" key='#["message_error_" ++ correlationId]' >
-					<os:value ><![CDATA[#[%dw 2.0
-output application/json
----
-{
-    timestamp: now(),
-    messageId: attributes.properties.messageId default correlationId,
-    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
-    errorDescription: if(error != null) error.description else "No description available"
-}]]]></os:value>
-				</os:store>
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2b946638-d28e-4a97-8000-0a439613bc62" type="JSON:SCHEMA_NOT_HONOURED" >
+				<flow-ref doc:name="saveErrorToObjectStore" doc:id="7e38005c-b2dd-4d2b-a39e-ca9c44c9a745" name="saveErrorToObjectStore" />
+				<amqp:reject doc:name="Reject" doc:id="8d3ba746-0d80-4744-b163-e981b8ee1437" ackId="#[vars.ackId]" />
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b20a1b10-b4fc-49c5-b0d2-e8cdb51dc5a5" >
+				<flow-ref doc:name="saveErrorToObjectStore" doc:id="c5ef0231-d90e-48bb-a5f3-33eed776e51f" name="saveErrorToObjectStore" />
 			</on-error-propagate>
 		</error-handler>
 	</flow>
@@ -244,5 +237,18 @@ output text/plain
 ---
 write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
 		</file:write>
+	</sub-flow>
+	<sub-flow name="saveErrorToObjectStore" doc:id="e1f1af66-546c-4557-a7c1-5baaacfc0fa0" >
+		<os:store doc:name="message_error_uuid" doc:id="085c019a-4803-4bb0-a38a-90fedb8e16c7" key='#["message_error_" ++ correlationId]' >
+			<os:value ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+    timestamp: now(),
+    messageId: attributes.properties.messageId default correlationId,
+    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
+    errorDescription: if(error != null) error.description else "No description available"
+}]]]></os:value>
+		</os:store>
 	</sub-flow>
 </mule>
