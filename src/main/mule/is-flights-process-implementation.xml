@@ -54,6 +54,15 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		</scheduler>
 		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
 	</flow> [STUDIO] -->
+	<sub-flow name="publishCountryEvent" doc:id="24bdd49f-816e-4bd5-a684-ce6032b7fb25" >
+		<set-variable value="#[payload.name]" doc:name="country" doc:id="a6f6a0e6-2d00-4622-94ca-1b9950a7a48a" variableName="country" />
+		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="e85f91b5-1a39-467f-8ddf-45e576654981" variableName="city" />
+		<amqp:publish doc:name="Publish" doc:id="9de796de-7c88-43e9-8ec2-7bb62819e769" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
+			<amqp:message>
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
+		</amqp:publish>
+	</sub-flow>
 	<sub-flow name="publishCountries" doc:id="54f817c8-a5c2-4c29-9d16-92e74655595f" >
 		<http:request doc:name="GET /countries" doc:id="09067d66-5085-4f75-88a9-d77e4f25ae6a" config-ref="HTTP_System_Api_config" path="/countries">
 			<http:query-params><![CDATA[#[output application/java
@@ -63,13 +72,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 }]]]></http:query-params>
 		</http:request>
 		<parallel-foreach doc:name="Parallel For Each" doc:id="3feb2588-6758-494b-ac18-dc9f1ab6041e" >
-			<set-variable value="#[payload.name]" doc:name="country" doc:id="6374107f-3cc9-4343-a31b-a58384509251" variableName="country" />
-			<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="93d6fbbb-0ca3-44b7-9c5e-eb63ac463baf" variableName="city"/>
-			<amqp:publish doc:name="Publish" doc:id="371916a9-f7a2-4470-957a-1917829f6ed5" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
-				<amqp:message >
-					<amqp:properties correlationId="#[uuid()]" />
-				</amqp:message>
-		</amqp:publish>
+			<flow-ref doc:name="publishCountryEvent" doc:id="180eafe6-2fe1-4899-b293-2afa94c71d14" name="publishCountryEvent"/>
 		</parallel-foreach>
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
 	</sub-flow>
