@@ -32,12 +32,22 @@ types:
               example: !include examples/flight-example.json
 
 /countries:
-  /publish:
+  /triggerScheduler:
     post:
-      description: Trigger country data publish event
+      description: Trigger scheduler that publishes events
       responses:
         202:
           description: Process started.
+
+  /publishEvent:
+    post:
+      description: Publish event with custom payload to queue
+      body:
+        application/json:
+          example: !include examples/country-event-example.json
+      responses:
+        202:
+          description: Event published.
 
 /weatherSnapshot:
   get:
