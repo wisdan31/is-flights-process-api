@@ -198,6 +198,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<flow-ref doc:name="saveDeadLetter" doc:id="de8ed912-26f4-42dd-8c06-bed1f3820a92" name="saveDeadLetter" />
+		<os:remove doc:name="message_error_uuid" doc:id="f757af97-b4ef-4a33-b09d-6050cc964a12" key='#["message_error_" ++ correlationId]' />
 	</sub-flow>
 	<sub-flow name="saveDeadLetter" doc:id="6ce2bfae-8589-4b49-981c-2cb0e2156638" >
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="e4825f71-4e42-4d6d-89a4-5e09e199c968" variableName="ackId" />
