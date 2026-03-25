@@ -16,3 +16,5 @@ mq:
   username: "guest"
   password: "guest"
   
+dir:
+  parkingLot: 'C:\Users\ishulia\AnypointStudio\workspace02'

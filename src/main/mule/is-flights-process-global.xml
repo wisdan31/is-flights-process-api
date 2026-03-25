@@ -17,6 +17,6 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 	<import doc:name="Import" doc:id="ccbe8c71-464b-4790-b081-3f6444fabc8a" file="global-error-handler.xml" />
 	<import doc:name="Import" doc:id="78ad5026-8703-4fd8-b55f-93b331af7d9e" file="logging.xml" />
 	<file:config name="parkingLotConfig" doc:name="File Config" doc:id="10ee1bea-5aa0-4731-93ca-0e4130b71675" >
-		<file:connection workingDir="C:\Users\ishulia\AnypointStudio\workspace02" />
+		<file:connection workingDir="${dir.parkingLot}" />
 	</file:config>
 </mule>
