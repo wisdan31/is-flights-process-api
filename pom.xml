@@ -87,12 +87,6 @@
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>
-			<groupId>com.mulesoft.connectors</groupId>
-			<artifactId>mule-mongodb-connector</artifactId>
-			<version>6.3.11</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongodb-driver-legacy</artifactId>
 			<version>4.0.4</version>
