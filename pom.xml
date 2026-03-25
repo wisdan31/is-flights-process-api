@@ -31,12 +31,6 @@
 				<extensions>true</extensions>
 				<configuration>
 					<classifier>mule-application</classifier>
-					<sharedLibraries>
-						<sharedLibrary>
-							<groupId>org.mongodb</groupId>
-							<artifactId>mongodb-driver-legacy</artifactId>
-						</sharedLibrary>
-					</sharedLibraries>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -85,11 +79,6 @@
 			<artifactId>mule-amqp-connector</artifactId>
 			<version>1.9.0</version>
 			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-legacy</artifactId>
-			<version>4.0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.connectors</groupId>
