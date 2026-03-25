@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "countryCode": {
+      "type": "string",
+      "description": "The 2-letter country code",
+      "minLength": 2,
+      "maxLength": 2
+    },
+    "capital": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string",
+          "description": "The name of the capital city"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "weatherConditions": {
+          "type": "object",
+          "properties": {
+            "visibility": {
+              "type": "number"
+            },
+            "temperature": {
+              "type": "object",
+              "properties": {
+                "degrees": {
+                  "type": "string",
+                  "enum": ["Celsius", "Fahrenheit", "Kelvin"]
+                },
+                "current": {
+                  "type": "number"
+                }
+              },
+              "required": ["degrees", "current"]
+            },
+            "pressure": {
+              "type": "number"
+            },
+            "humidity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "wind": {
+              "type": "object",
+              "properties": {
+                "speed": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "deg": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 360
+                }
+              },
+              "required": ["speed", "deg"]
+            }
+          },
+          "required": ["visibility", "temperature", "pressure", "humidity", "wind"]
+        }
+      },
+      "required": ["city", "longitude", "latitude", "weatherConditions"]
+    },
+    "country": {
+      "type": "string",
+      "description": "The full name of the country"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    }
+  },
+  "required": ["countryCode", "capital", "country", "lastUpdated"]
+}

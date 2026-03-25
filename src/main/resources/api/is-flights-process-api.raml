@@ -30,3 +30,36 @@ types:
             application/json:
               type: Flight
               example: !include examples/flight-example.json
+
+/countries:
+  /triggerScheduler:
+    post:
+      description: Trigger scheduler that publishes events
+      responses:
+        202:
+          description: Process started.
+
+  /publishEvent:
+    post:
+      description: Publish event with custom payload to queue
+      body:
+        application/json:
+          example: !include examples/country-event-example.json
+      responses:
+        202:
+          description: Event published.
+
+/weatherSnapshot:
+  get:
+    description: Retrieve weather information for country capital
+    queryParameters:
+      countryCode:
+        description: Code of the country to get capital weather for
+        required: true
+        type: string
+        example: "UA"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include examples/weather-db-example.json

@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the country"
+    },
+    "capital": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the capital city"
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        }
+      },
+      "required": [
+        "name",
+        "lat",
+        "lng"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "description": "The 2-letter country code",
+      "minLength": 2,
+      "maxLength": 2
+    }
+  },
+  "required": [
+    "name",
+    "capital",
+    "code"
+  ]
+}

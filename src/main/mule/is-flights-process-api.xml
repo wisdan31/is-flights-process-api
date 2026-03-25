@@ -11,9 +11,9 @@
             </http:error-response>
         </http:listener>
         <flow-ref doc:name="logInitialRequest" doc:id="c93a739d-1def-46fb-b582-96a7a20e7dba" name="logInitialRequest" />
-		<apikit:router config-ref="is-flights-process-api-config" />
+        <apikit:router config-ref="is-flights-process-api-config" />
         <flow-ref doc:name="logFinalResponse" doc:id="daa8e1ee-17fb-4b3b-832d-877a1e18afbf" name="logFinalResponse" />
-		<error-handler ref="global_error_handler" /> 
+        <error-handler ref="global_error_handler" />
     </flow>
     <flow name="is-flights-process-api-console">
         <http:listener path="/${api.basepath}/console/*" config-ref="HTTP_Listener_config">
@@ -29,9 +29,18 @@
         <error-handler ref="global_error_handler" />
     </flow>
     <flow name="get:\flights:is-flights-process-api-config">
-		<flow-ref doc:name="Flow Reference" doc:id="4a574d3b-04be-46da-8c3a-54b115699f05" name="getFlights"/>
+        <flow-ref doc:name="Flow Reference" doc:id="4a574d3b-04be-46da-8c3a-54b115699f05" name="getFlights" />
     </flow>
     <flow name="get:\flights\(flightId):is-flights-process-api-config">
-		<flow-ref doc:name="getFlightById" doc:id="72d24885-2cb4-430b-9ac2-b8df742c7c8a" name="getFlightById"/>
+        <flow-ref doc:name="getFlightById" doc:id="72d24885-2cb4-430b-9ac2-b8df742c7c8a" name="getFlightById" />
+    </flow>
+    <flow name="get:\weatherSnapshot:is-flights-process-api-config">
+        <flow-ref doc:name="getWeatherSnapshot" doc:id="fa0b575a-2f7a-499f-ab9d-406eb8718019" name="getWeatherSnapshot" />
+    </flow>
+    <flow name="post:\countries\publishEvent:application\json:is-flights-process-api-config">
+		<flow-ref doc:name="publishCountryEvent" doc:id="58c4e5b7-ac7e-407a-b225-7ee0b3f20914" name="publishCountryEvent"/>
+    </flow>
+    <flow name="post:\countries\triggerScheduler:is-flights-process-api-config">
+        <flow-ref doc:name="publishCountries" doc:id="ecca682d-850c-41c5-98e9-e5dec32dc2c9" name="publishCountries" />
     </flow>
 </mule>

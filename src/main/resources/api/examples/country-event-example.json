@@ -1,0 +1,9 @@
+{
+    "name": "Moldova",
+    "capital": {
+      "name": "Chișinău",
+      "lat": 47.01,
+      "lng": 28.9
+    },
+    "code": "md"
+  }
