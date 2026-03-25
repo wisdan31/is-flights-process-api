@@ -148,11 +148,11 @@ output application/json
 		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
-			<when expression="#[vars.visibility &lt; 5000]">
-				<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message="WARN: Reduced visibility. Pay increased attention during flight"/>
-			</when>
 			<when expression="#[vars.visibility &lt; 3000]">
-				<logger level="INFO" doc:name="Logger" doc:id="b00c0f84-c7d2-43e1-a9d2-62961f048648" message="CRITICAL: Low visibility Pay increased attention during flight. Delays possible"/>
+				<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message="CRITICAL: Low visibility Pay increased attention during flight. Delays possible"/>
+			</when>
+			<when expression="#[vars.visibility &lt; 5000]">
+				<logger level="INFO" doc:name="Logger" doc:id="b00c0f84-c7d2-43e1-a9d2-62961f048648" message="WARN: Reduced visibility. Pay increased attention during flight"/>
 			</when>
 			<otherwise>
 				<logger level="INFO" doc:name="Logger" doc:id="bf4ab1af-9194-43c9-a1ee-1f36c3367047" message="Clear weather. Happy flight!"/>
