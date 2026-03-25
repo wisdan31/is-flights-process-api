@@ -11,9 +11,6 @@ http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mo
 http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
-	<amqp:config name="AMQP_Config" doc:name="AMQP Config" doc:id="92f1255f-8e10-4e6e-9117-09d472ddb628" >
-		<amqp:connection host="${mq.host}" port="${mq.port}" username="${mq.username}" password="${mq.password}" />
-	</amqp:config>
 	<sub-flow name="getFlights" doc:id="cac18073-697e-4ddd-8693-21b49ba8d8c5" >
 		<set-variable value="#[message.attributes.queryParams.destination]" doc:name="destination" doc:id="465179e4-4d8b-49d7-9928-8ef6ed47720b" variableName="destination" />
 		<set-variable value='#[{ "status": "Get American Flights request"}]' doc:name="logMessage" doc:id="abd8ec34-626c-407f-9252-1fee3a8f85b2" variableName="logMessage" />
@@ -57,7 +54,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 	<sub-flow name="publishCountryEvent" doc:id="24bdd49f-816e-4bd5-a684-ce6032b7fb25" >
 		<set-variable value="#[payload.name]" doc:name="country" doc:id="a6f6a0e6-2d00-4622-94ca-1b9950a7a48a" variableName="country" />
 		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="e85f91b5-1a39-467f-8ddf-45e576654981" variableName="city" />
-		<amqp:publish doc:name="Publish" doc:id="9de796de-7c88-43e9-8ec2-7bb62819e769" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]'>
+		<amqp:publish doc:name="Publish" doc:id="9de796de-7c88-43e9-8ec2-7bb62819e769" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]' config-ref="AMQP_Config1">
 			<amqp:message>
 				<amqp:properties correlationId="#[uuid()]" />
 			</amqp:message>
@@ -77,7 +74,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
 	</sub-flow>
 	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
-		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" config-ref="AMQP_Config" queueName="country.city.queue" ackMode="MANUAL">
+		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" queueName="country.city.queue" ackMode="MANUAL" config-ref="AMQP_Config1">
 			<redelivery-policy maxRedeliveryCount="2"/>
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId" />
@@ -119,7 +116,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<http:request doc:name="POST /weatherSnapshot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
-		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
+		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="country.city.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
@@ -139,7 +136,7 @@ output application/json
 		</error-handler>
 	</flow>
 	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
-		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" config-ref="AMQP_Config" queueName="alert.evaluate" ackMode="MANUAL">
+		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" queueName="alert.evaluate" ackMode="MANUAL" config-ref="AMQP_Config1">
 			<redelivery-policy maxRedeliveryCount="2" />
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
@@ -170,11 +167,11 @@ output application/json
 		</error-handler>
 	</flow>
 	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
-		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" config-ref="AMQP_Config" queueName="country.city.queue.dlq" ackMode="MANUAL"/>
+		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" queueName="country.city.queue.dlq" ackMode="MANUAL" config-ref="AMQP_Config1"/>
 		<flow-ref doc:name="processDeadLetter" doc:id="c738fb27-a249-4b61-90e6-31dffd196f1a" name="processDeadLetter"/>
 	</flow>
 	<flow name="alertDLQ_Listener" doc:id="bad66bea-03d2-41c0-a5ee-dec1e1128a33">
-		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" config-ref="AMQP_Config" queueName="alert.evaluate.dlq" ackMode="MANUAL" />
+		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" queueName="alert.evaluate.dlq" ackMode="MANUAL" config-ref="AMQP_Config1"/>
 		<flow-ref doc:name="processDeadLetter" doc:id="4edb0140-efa0-4b06-9a09-c4de9b38696f" name="processDeadLetter" />
 	</flow>
 	<sub-flow name="processDeadLetter" doc:id="3db79f3f-641b-4346-a71e-6542601b17dd" >
