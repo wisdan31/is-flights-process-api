@@ -118,7 +118,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request doc:name="POST /weatherSnaphsot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
+		<http:request doc:name="POST /weatherSnapshot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
 		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" config-ref="AMQP_Config" exchangeName="country.city.topic" deliveryMode="PERSISTENT">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
