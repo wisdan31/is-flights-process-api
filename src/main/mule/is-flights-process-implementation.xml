@@ -217,7 +217,11 @@ output application/json
 {
 	"countryCode" : vars.countryCode
 }]]]></http:query-params>
+			<http:response-validator >
+				<http:success-status-code-validator values="200..599" />
+			</http:response-validator>
 		</http:request>
+		<flow-ref doc:name="responseProcesingSubFlow" doc:id="6dba00fc-5959-426d-90cf-05d125d74856" name="responseProcessingSubFlow" />
 	</sub-flow>
 	<sub-flow name="parkingLotWrite" doc:id="3ec8935c-4df9-4d61-a14c-8b639ad30cbd" >
 		<file:write doc:name="Write" doc:id="e6bf227d-2f45-4ea2-b76f-650648c17512" config-ref="parkingLotConfig" path="deadLetters_parkingLot.log" mode="APPEND">
