@@ -43,14 +43,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
 	</sub-flow>
-	<!-- [STUDIO:"Scheduler"]<flow name="Scheduler" doc:id="eb1d1d4d-72e7-4892-8cb3-2be531f73b5c" initialState="stopped">
-		<scheduler doc:name="Scheduler" doc:id="66f26e0b-03df-43d3-acfd-094b81a6c4ec" >
-			<scheduling-strategy >
-				<fixed-frequency frequency="2" timeUnit="MINUTES"/>
-			</scheduling-strategy>
-		</scheduler>
-		<flow-ref doc:name="publishCountries" doc:id="6061a44f-b118-4ade-b69a-6ca8bf9ce9e8" name="publishCountries"/>
-	</flow> [STUDIO] -->
 	<sub-flow name="publishCountryEvent" doc:id="24bdd49f-816e-4bd5-a684-ce6032b7fb25" >
 		<set-variable value="#[payload.name]" doc:name="country" doc:id="a6f6a0e6-2d00-4622-94ca-1b9950a7a48a" variableName="country" />
 		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="e85f91b5-1a39-467f-8ddf-45e576654981" variableName="city" />

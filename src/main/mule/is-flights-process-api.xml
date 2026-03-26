@@ -43,4 +43,12 @@
     <flow name="post:\countries\triggerScheduler:is-flights-process-api-config">
         <flow-ref doc:name="publishCountries" doc:id="ecca682d-850c-41c5-98e9-e5dec32dc2c9" name="publishCountries" />
     </flow>
+    <!-- [STUDIO:"Scheduler"]<flow name="Scheduler" doc:id="e7864c53-135f-44fe-8da2-17413bd658f6" initialState="stopped">
+		<scheduler doc:name="Scheduler" doc:id="a24a360d-4cfb-4edc-8391-98f33a54740b" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="2" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="publishCountries" doc:id="f7d3fbbf-55d9-4fc5-bbb0-452003ca3856" name="publishCountries"/>
+	</flow> [STUDIO] -->
 </mule>
