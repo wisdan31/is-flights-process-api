@@ -222,6 +222,7 @@ output text/plain
 ---
 write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
 		</file:write>
+		<set-variable value='#[{"status": "Saved Dead Letter to .log file locally"}]' doc:name="logMessage" doc:id="4ed14f32-37a8-4bf0-80e2-3d1002bb4e0d" variableName="logMessage" />
 	</sub-flow>
 	<sub-flow name="saveErrorToObjectStore" doc:id="e1f1af66-546c-4557-a7c1-5baaacfc0fa0" >
 		<os:store doc:name="message_error_uuid" doc:id="085c019a-4803-4bb0-a38a-90fedb8e16c7" key='#["message_error_" ++ correlationId]' >
