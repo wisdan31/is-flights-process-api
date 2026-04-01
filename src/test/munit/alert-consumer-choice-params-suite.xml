@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="alert-consumer-choice-params-suite.xml" >
+		<munit:parameterizations file="common\weather-snapshot-parameters.yaml" />
+	</munit:config>
+	<munit:test name="alert_consumer-test" doc:id="00d3fc27-1e13-43f8-9e8c-a617034261b4" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="baabfacf-b1bd-405e-90ac-237aebf13173" processor="amqp:ack">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ack" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="f4b1ca69-43b9-43ee-acb0-10ffeea84270" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="b0b0aa1f-bc57-4620-a4b3-1e125835ad39" >
+				<munit:payload value="#[output application/json --- readUrl(&quot;classpath://inputs/alert_consumer-weather-snapshot.json&quot;, &quot;application/json&quot;) update {case .capital.weatherConditions.visibility -&gt; p('visibilityValue') as Number}]" />
+				<munit:attributes value='#[{ackId: "123"}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to Alert_Consumer" doc:id="aa6037ee-01c9-4489-a6c8-513d340d9ffc" name="Alert_Consumer"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="f0cad482-7e85-4a4f-aa6b-b9d36cf6e5f0" expression="#[vars.visibilityStatus]" is="#[MunitTools::equalTo(p('expectedStatus'))]"/>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
