@@ -200,7 +200,7 @@ output application/json
 				</on-error-continue>
 			</error-handler>
 		</try>
-		<amqp:ack doc:name="" doc:id="2d1cecfe-18a8-402a-96a2-4e2ed2959d1b" ackId="#[vars.ackId]" />
+		<amqp:ack doc:name="ackId" doc:id="2d1cecfe-18a8-402a-96a2-4e2ed2959d1b" ackId="#[vars.ackId]" />
 	</sub-flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
