@@ -1,0 +1,12 @@
+NegativeVisibility:
+  visibilityValue: -1
+  expectedStatus: "LOW"
+ZeroVisibility:
+  visibilityValue: 0
+  expectedStatus: "LOW"
+ModerateVisibility:
+  visibilityValue: 4000
+  expectedStatus: "MODERATE"
+ClearVisibility:
+  visibilityValue: 10000
+  expectedStatus: "CLEAR"

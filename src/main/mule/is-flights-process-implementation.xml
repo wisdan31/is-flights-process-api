@@ -43,15 +43,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="1e9ce55f-30f3-415f-83fe-18222e9223a0" name="responseProcessingSubFlow"/>
 	</sub-flow>
-	<sub-flow name="publishCountryEvent" doc:id="24bdd49f-816e-4bd5-a684-ce6032b7fb25" >
-		<set-variable value="#[payload.name]" doc:name="country" doc:id="a6f6a0e6-2d00-4622-94ca-1b9950a7a48a" variableName="country" />
-		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="e85f91b5-1a39-467f-8ddf-45e576654981" variableName="city" />
-		<amqp:publish doc:name="Publish" doc:id="9de796de-7c88-43e9-8ec2-7bb62819e769" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]' config-ref="AMQP_Config1">
-			<amqp:message>
-				<amqp:properties correlationId="#[uuid()]" />
-			</amqp:message>
-		</amqp:publish>
-	</sub-flow>
 	<sub-flow name="publishCountries" doc:id="54f817c8-a5c2-4c29-9d16-92e74655595f" >
 		<http:request doc:name="GET /countries" doc:id="09067d66-5085-4f75-88a9-d77e4f25ae6a" config-ref="HTTP_System_Api_config" path="/countries">
 			<http:query-params><![CDATA[#[output application/java
@@ -64,6 +55,15 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 			<flow-ref doc:name="publishCountryEvent" doc:id="180eafe6-2fe1-4899-b293-2afa94c71d14" name="publishCountryEvent"/>
 		</parallel-foreach>
 		<set-payload value="Countries published." doc:name="Countries published" doc:id="babc7607-35c6-4645-9e76-34a5fc1f8c76" />
+	</sub-flow>
+	<sub-flow name="publishCountryEvent" doc:id="24bdd49f-816e-4bd5-a684-ce6032b7fb25">
+		<set-variable value="#[payload.name]" doc:name="country" doc:id="a6f6a0e6-2d00-4622-94ca-1b9950a7a48a" variableName="country" />
+		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="e85f91b5-1a39-467f-8ddf-45e576654981" variableName="city" />
+		<amqp:publish doc:name="Publish" doc:id="9de796de-7c88-43e9-8ec2-7bb62819e769" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]' config-ref="AMQP_Config1">
+			<amqp:message>
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
+		</amqp:publish>
 	</sub-flow>
 	<flow name="Weather_Snapshots_Consumer" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" queueName="country.city.queue" ackMode="MANUAL" config-ref="AMQP_Config1">
@@ -134,19 +134,20 @@ output application/json
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
 		<json:validate-schema doc:name="Validate schema" doc:id="7e9d778a-c94d-408f-b6cb-09bd131e62f9" schema="api/schemas/weather-schema.json" >
 		</json:validate-schema>
-		<logger level="INFO" doc:name="Logger" doc:id="086392d7-4011-427d-b839-7487e5490b41" message='#["Processing city: " ++ payload.capital.city]' />
+		<set-variable value="#[payload.capital.city]" doc:name="city" doc:id="78918a52-389c-4230-86a8-d2015fd36ffa" variableName="city"/>
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
 			<when expression="#[vars.visibility &lt; 3000]">
-				<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message="CRITICAL: Low visibility Pay increased attention during flight. Delays possible"/>
+				<set-variable value="LOW" doc:name="visibilityStatus" doc:id="85228e82-d4e6-44ec-ba3b-19f6cf9cd20b" variableName="visibilityStatus" />
 			</when>
 			<when expression="#[vars.visibility &lt; 5000]">
-				<logger level="INFO" doc:name="Logger" doc:id="b00c0f84-c7d2-43e1-a9d2-62961f048648" message="WARN: Reduced visibility. Pay increased attention during flight"/>
+				<set-variable value="MODERATE" doc:name="visibilityStatus" doc:id="322a5dc2-bed3-4408-a79a-b4176dc6fbd1" variableName="visibilityStatus"/>
 			</when>
 			<otherwise>
-				<logger level="INFO" doc:name="Logger" doc:id="bf4ab1af-9194-43c9-a1ee-1f36c3367047" message="Clear weather. Happy flight!"/>
+				<set-variable value="CLEAR" doc:name="visibilityStatus" doc:id="18a65394-0b51-4407-a4c7-8bd07f7d8feb" variableName="visibilityStatus" />
 			</otherwise>
 		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message='#[output text/plain --- "City: $(vars.city). Visibility status: $(vars.visibilityStatus)"]' />
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 		<error-handler>
 			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2b946638-d28e-4a97-8000-0a439613bc62" type="JSON:SCHEMA_NOT_HONOURED" >
@@ -199,7 +200,7 @@ output application/json
 				</on-error-continue>
 			</error-handler>
 		</try>
-		<amqp:ack doc:name="" doc:id="2d1cecfe-18a8-402a-96a2-4e2ed2959d1b" ackId="#[vars.ackId]" />
+		<amqp:ack doc:name="ackId" doc:id="2d1cecfe-18a8-402a-96a2-4e2ed2959d1b" ackId="#[vars.ackId]" />
 	</sub-flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
