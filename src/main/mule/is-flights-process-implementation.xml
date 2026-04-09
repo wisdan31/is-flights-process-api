@@ -68,6 +68,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 	<flow name="amqpListener_weatherSnapshotProcess" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" queueName="country.city.queue" ackMode="MANUAL" config-ref="AMQP_Config1" numberOfConsumers="5">
 			<redelivery-policy maxRedeliveryCount="2"/>
+			<amqp:listener-quality-of-service-config prefetchCount="1" />
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId" />
 		<json:validate-schema doc:name="Validate schema" doc:id="95a5586a-1b4d-4605-ac99-8b942fd1f30b" schema="api/schemas/country-schema.json">
