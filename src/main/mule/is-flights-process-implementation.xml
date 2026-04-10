@@ -72,6 +72,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="987e0c45-d3f0-47ba-bc41-a5e33db98322" variableName="ackId" />
 		<json:validate-schema doc:name="Validate schema" doc:id="95a5586a-1b4d-4605-ac99-8b942fd1f30b" schema="api/schemas/country-schema.json">
+			<error-mapping targetType="MESSAGE:POISONOUS" sourceType="JSON:SCHEMA_NOT_HONOURED"/>
 		</json:validate-schema>
 		<http:request doc:name="GET /weather" doc:id="19aed6c2-a497-423f-a15d-4dfc3f7b3735" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData">
 			<http:query-params><![CDATA[#[output application/java
@@ -117,15 +118,7 @@ output application/json
 			</amqp:message>
 		</amqp:publish>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
-		<error-handler >
-			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="8cd44cb7-ad0c-45ff-9306-d53df1d2f882" type="JSON:SCHEMA_NOT_HONOURED">
-				<flow-ref doc:name="saveErrorToObjectStore" doc:id="f6051b32-c1a2-431d-8954-cc5ea2a82b08" name="saveErrorToObjectStore"/>
-				<amqp:reject doc:name="Reject" doc:id="3b7d15e9-6a68-4b97-bdfc-73d9e1ff02ad" ackId="#[vars.ackId]" />
-			</on-error-continue>
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d7e96f5-d74c-4fd1-b437-15782572d2ae" >
-				<flow-ref doc:name="saveErrorToObjectStore" doc:id="e55e3a31-241d-4ec6-bec5-a83241ad19e0" name="saveErrorToObjectStore" />
-			</on-error-propagate>
-		</error-handler>
+		<error-handler ref="amqp_error_handler" />
 	</flow>
 	<flow name="amqpListener_saveWeatherToDB" doc:id="97e1226a-5b45-458e-b211-2b1f640ca900" >
 		<amqp:listener doc:name="Listener" doc:id="23678821-00f3-4452-8315-bba5d0b7a3ad" config-ref="AMQP_Config1" queueName="weather.db.persist" ackMode="MANUAL">
@@ -134,11 +127,7 @@ output application/json
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="c9477f7e-15bd-41cb-835d-42ab5c8ce6ce" variableName="ackId" />
 		<http:request doc:name="POST /weatherSnapshot" doc:id="1fbecec2-cc1d-4265-bdd0-ede3649a20ff" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot"/>
 		<amqp:ack doc:name="Ack" doc:id="13f586ac-b7a7-412b-824f-21a919284b9f" ackId="#[vars.ackId]" />
-		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ef907841-bc68-4ceb-a798-5a2beb75175d" >
-				<flow-ref doc:name="saveErrorToObjectStore" doc:id="1b96ef06-68f1-4291-be39-32bfcdf59d13" name="saveErrorToObjectStore" />
-			</on-error-propagate>
-		</error-handler>
+		<error-handler ref="amqp_error_handler" />
 	</flow>
 	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
 		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" queueName="alert.evaluate" ackMode="MANUAL" config-ref="AMQP_Config1">
@@ -146,6 +135,7 @@ output application/json
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="2ea82eb9-eaa2-4b61-b550-67088790d952" variableName="ackId" />
 		<json:validate-schema doc:name="Validate schema" doc:id="7e9d778a-c94d-408f-b6cb-09bd131e62f9" schema="api/schemas/weather-schema.json" >
+			<error-mapping sourceType="JSON:SCHEMA_NOT_HONOURED" targetType="MESSAGE:POISONOUS" />
 		</json:validate-schema>
 		<set-variable value="#[payload.capital.city]" doc:name="city" doc:id="78918a52-389c-4230-86a8-d2015fd36ffa" variableName="city"/>
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
@@ -162,15 +152,7 @@ output application/json
 		</choice>
 		<logger level="INFO" doc:name="Logger" doc:id="f75c5ca2-011a-4d93-b7ea-871b99961cfc" message='#[output text/plain --- "City: $(vars.city). Visibility status: $(vars.visibilityStatus)"]' />
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
-		<error-handler>
-			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2b946638-d28e-4a97-8000-0a439613bc62" type="JSON:SCHEMA_NOT_HONOURED" >
-				<flow-ref doc:name="saveErrorToObjectStore" doc:id="7e38005c-b2dd-4d2b-a39e-ca9c44c9a745" name="saveErrorToObjectStore" />
-				<amqp:reject doc:name="Reject" doc:id="8d3ba746-0d80-4744-b163-e981b8ee1437" ackId="#[vars.ackId]" />
-			</on-error-continue>
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b20a1b10-b4fc-49c5-b0d2-e8cdb51dc5a5" >
-				<flow-ref doc:name="saveErrorToObjectStore" doc:id="c5ef0231-d90e-48bb-a5f3-33eed776e51f" name="saveErrorToObjectStore" />
-			</on-error-propagate>
-		</error-handler>
+		<error-handler ref="amqp_error_handler" />
 	</flow>
 	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
 		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" queueName="country.city.queue.dlq" ackMode="MANUAL" config-ref="AMQP_Config1"/>
@@ -184,73 +166,18 @@ output application/json
 		<amqp:listener doc:name="weather.db.persist.dlq" doc:id="e8fa5a83-b5c5-45ea-aa56-dc911810a1e9" config-ref="AMQP_Config1" queueName="weather.db.persist.dlq" ackMode="MANUAL" />
 		<flow-ref doc:name="processDeadLetter" doc:id="d1cb0c3c-5df0-4b34-8536-0f509fe9ed17" name="processDeadLetter" />
 	</flow>
-	<sub-flow name="processDeadLetter" doc:id="3db79f3f-641b-4346-a71e-6542601b17dd" >
-		<os:retrieve doc:name="message_error_uuid" doc:id="53e401f8-35c7-4ab6-8a94-1d379e6c0269" key='#["message_error_" ++ correlationId]' target="error" >
-			<os:default-value ><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
-		</os:retrieve>
-		<ee:transform doc:name="Transform Message" doc:id="080e544f-6121-410d-827e-74a0bdb6ecc9" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-{
-	metadata: {
-		"correlationId": correlationId default 'UNKNOWN',
-		processedAt: now(),
-		"x-death": attributes.headers.'x-death' default [],
-		"error": vars.error
-	},
-    "payload": payload
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-		<flow-ref doc:name="saveDeadLetter" doc:id="de8ed912-26f4-42dd-8c06-bed1f3820a92" name="saveDeadLetter" />
-		<os:remove doc:name="message_error_uuid" doc:id="f757af97-b4ef-4a33-b09d-6050cc964a12" key='#["message_error_" ++ correlationId]' />
-	</sub-flow>
-	<sub-flow name="saveDeadLetter" doc:id="6ce2bfae-8589-4b49-981c-2cb0e2156638" >
-		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="e4825f71-4e42-4d6d-89a4-5e09e199c968" variableName="ackId" />
-		<try doc:name="Try" doc:id="190c4ded-2940-4e09-bbf4-ded7084cf2fa" >
-			<http:request doc:name="POST /deadLettersOffice" doc:id="a7023fdb-f2f8-44b1-9bf1-d0b1cea69b7f" config-ref="HTTP_System_Api_config" method="POST" path="/deadLettersOffice" />
-			<error-handler >
-				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="dc0bae58-967d-4b0e-a67b-e3d40674d15e" >
-					<flow-ref doc:name="parkingLotWrite" doc:id="91aa50b7-acff-4d06-98b5-d47e72ca99a8" name="parkingLotWrite" />
-				</on-error-continue>
-			</error-handler>
-		</try>
-		<amqp:ack doc:name="ackId" doc:id="2d1cecfe-18a8-402a-96a2-4e2ed2959d1b" ackId="#[vars.ackId]" />
-	</sub-flow>
-	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef" >
-		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode"/>
+	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef">
+		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode" />
 		<http:request doc:name="GET /weatherSnapshot" doc:id="8ec9b0c5-c44d-4bf2-8e1b-b50b05057fe5" config-ref="HTTP_System_Api_config" path="/weatherSnapshot">
-			<http:query-params ><![CDATA[#[output application/java
+			<http:query-params><![CDATA[#[output application/java
 ---
 {
 	"countryCode" : vars.countryCode
 }]]]></http:query-params>
-			<http:response-validator >
+			<http:response-validator>
 				<http:success-status-code-validator values="200..599" />
 			</http:response-validator>
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="6dba00fc-5959-426d-90cf-05d125d74856" name="responseProcessingSubFlow" />
-	</sub-flow>
-	<sub-flow name="parkingLotWrite" doc:id="3ec8935c-4df9-4d61-a14c-8b639ad30cbd" >
-		<file:write doc:name="Write" doc:id="e6bf227d-2f45-4ea2-b76f-650648c17512" config-ref="parkingLotConfig" path="deadLetters_parkingLot.log" mode="APPEND">
-			<file:content ><![CDATA[#[%dw 2.0
-output text/plain
----
-write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
-		</file:write>
-	</sub-flow>
-	<sub-flow name="saveErrorToObjectStore" doc:id="e1f1af66-546c-4557-a7c1-5baaacfc0fa0" >
-		<os:store doc:name="message_error_uuid" doc:id="085c019a-4803-4bb0-a38a-90fedb8e16c7" key='#["message_error_" ++ correlationId]' >
-			<os:value ><![CDATA[#[%dw 2.0
-output application/json
----
-{
-    timestamp: now(),
-    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
-    errorDescription: if(error != null) error.description else "No description available"
-}]]]></os:value>
-		</os:store>
 	</sub-flow>
 </mule>

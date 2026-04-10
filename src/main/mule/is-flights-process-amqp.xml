@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+	<sub-flow name="processDeadLetter" doc:id="c9b21a4a-d756-4d2e-8850-d359203aeb7c" >
+		<os:retrieve doc:name="message_error_uuid" doc:id="40fb6d5a-0a6c-4d11-8faf-723a9322f4e6" key='#["message_error_" ++ correlationId]' target="error" >
+			<os:default-value ><![CDATA[#[{error: "UNKNOWN"}]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="f6d9cb07-71ae-4792-9ffc-985e1f93e4dd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	metadata: {
+		"correlationId": correlationId default 'UNKNOWN',
+		processedAt: now(),
+		"x-death": attributes.headers.'x-death' default [],
+		"error": vars.error
+	},
+    "payload": payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="saveDeadLetter" doc:id="7987be46-32fe-49dc-b4d2-2afac60726be" name="saveDeadLetter" />
+		<os:remove doc:name="message_error_uuid1" doc:id="aa76c72f-0b8a-46eb-b3fe-6d57be7c8dae" key='#["message_error_" ++ correlationId]' />
+	</sub-flow>
+	<sub-flow name="saveErrorToObjectStore" doc:id="ce8e0833-ef30-4e9e-a7b6-aa771bff46e2" >
+		<os:store doc:name="message_error_uuid" doc:id="41fd2706-ac4f-4f3b-bc7a-417347e1a532" key='#["message_error_" ++ correlationId]' >
+			<os:value ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+    timestamp: now(),
+    errorType: if(error != null) (error.errorType.namespace ++ ":" ++ error.errorType.identifier) else "UNKNOWN",
+    errorDescription: if(error != null) error.description else "No description available"
+}]]]></os:value>
+		</os:store>
+	</sub-flow>
+	<sub-flow name="parkingLotWrite" doc:id="35236fba-d668-410f-b747-3cb94db7a6a5" >
+		<file:write doc:name="Write" doc:id="b9e90423-d0d6-4bcd-8916-a79308cf8262" config-ref="parkingLotConfig" path="deadLetters_parkingLot.log" mode="APPEND" >
+			<file:content ><![CDATA[#[%dw 2.0
+output text/plain
+---
+write(payload, "application/json", {indent: false}) ++ "\n"]]]></file:content>
+		</file:write>
+	</sub-flow>
+	<sub-flow name="saveDeadLetter" doc:id="f79c8a2b-cbec-4207-83dd-c22b98011931" >
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="8bf9b360-351a-41ec-9a6e-92b9ffe1317a" variableName="ackId" />
+		<try doc:name="Try" doc:id="0c5690f6-6165-46f8-977f-940feb7bcfe1" >
+			<http:request doc:name="POST /deadLettersOffice" doc:id="9b82ea8a-40da-43df-b858-c33db1c3522b" config-ref="HTTP_System_Api_config" method="POST" path="/deadLettersOffice" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7998f2e7-da2c-4f9d-84c5-3a17b92e5919" >
+					<flow-ref doc:name="parkingLotWrite" doc:id="782f2a78-fcca-4ace-9527-b2aace1a8957" name="parkingLotWrite" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<amqp:ack doc:name="ackId" doc:id="039ca6a5-dd31-44d8-bcc0-92068e3dda8c" ackId="#[vars.ackId]" />
+	</sub-flow>
+	<error-handler name="amqp_error_handler" doc:id="83935bd8-154c-4c86-b74d-dc643181debc" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b4571483-f7e3-46f9-85b9-03629613ffbe" type="MESSAGE:POISONOUS" >
+			<flow-ref doc:name="saveErrorToObjectStore" doc:id="ba22d29b-ad89-4034-ab93-82fc80bf7463" name="saveErrorToObjectStore" />
+			<amqp:reject doc:name="Reject" doc:id="8f670dff-29b4-4b04-bcdc-9a5361465d9c" ackId="#[vars.ackId]" />
+		</on-error-continue>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="08d79a06-025c-4d2c-97f9-b108591595b0" type="MULE:REDELIVERY_EXHAUSTED">
+			<flow-ref doc:name="saveErrorToObjectStore" doc:id="4c082696-df99-4779-b146-0c477181b20d" name="saveErrorToObjectStore" />
+		</on-error-propagate>
+	</error-handler>
+</mule>
+
