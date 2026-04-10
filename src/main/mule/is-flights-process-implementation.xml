@@ -108,8 +108,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request doc:name="POST /weatherSnapshot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
-		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="country.city.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
+		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="weather.enriched.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
@@ -127,6 +126,12 @@ output application/json
 				<flow-ref doc:name="saveErrorToObjectStore" doc:id="e55e3a31-241d-4ec6-bec5-a83241ad19e0" name="saveErrorToObjectStore" />
 			</on-error-propagate>
 		</error-handler>
+	</flow>
+	<flow name="amqpListener_saveWeatherToDB" doc:id="97e1226a-5b45-458e-b211-2b1f640ca900" >
+		<amqp:listener doc:name="Listener" doc:id="23678821-00f3-4452-8315-bba5d0b7a3ad" config-ref="AMQP_Config1" queueName="weather.db.persist" ackMode="MANUAL"/>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="c9477f7e-15bd-41cb-835d-42ab5c8ce6ce" variableName="ackId" />
+		<http:request doc:name="POST /weatherSnapshot" doc:id="1fbecec2-cc1d-4265-bdd0-ede3649a20ff" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot"/>
+		<amqp:ack doc:name="Ack" doc:id="13f586ac-b7a7-412b-824f-21a919284b9f" ackId="#[vars.ackId]" />
 	</flow>
 	<flow name="Alert_Consumer" doc:id="bedff6f1-93be-4578-b4ca-b69e740ce912" >
 		<amqp:listener doc:name="Listener" doc:id="c1fd1be8-17fe-44c0-b118-533271d2649f" queueName="alert.evaluate" ackMode="MANUAL" config-ref="AMQP_Config1">
