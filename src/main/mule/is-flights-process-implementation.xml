@@ -132,7 +132,7 @@ output application/json
 			<redelivery-policy maxRedeliveryCount="2"/>
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="c9477f7e-15bd-41cb-835d-42ab5c8ce6ce" variableName="ackId" />
-		<http:request doc:name="POST /weatherSnapshot" doc:id="1fbecec2-cc1d-4265-bdd0-ede3649a20ff" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot123"/>
+		<http:request doc:name="POST /weatherSnapshot" doc:id="1fbecec2-cc1d-4265-bdd0-ede3649a20ff" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot"/>
 		<amqp:ack doc:name="Ack" doc:id="13f586ac-b7a7-412b-824f-21a919284b9f" ackId="#[vars.ackId]" />
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ef907841-bc68-4ceb-a798-5a2beb75175d" >
