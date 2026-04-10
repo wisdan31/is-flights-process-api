@@ -32,7 +32,7 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<flow-ref doc:name="saveDeadLetter" doc:id="7987be46-32fe-49dc-b4d2-2afac60726be" name="saveDeadLetter" />
-		<os:remove doc:name="message_error_uuid1" doc:id="aa76c72f-0b8a-46eb-b3fe-6d57be7c8dae" key='#["message_error_" ++ correlationId]' />
+		<os:remove doc:name="message_error_uuid" doc:id="aa76c72f-0b8a-46eb-b3fe-6d57be7c8dae" key='#["message_error_" ++ correlationId]' />
 	</sub-flow>
 	<sub-flow name="saveErrorToObjectStore" doc:id="ce8e0833-ef30-4e9e-a7b6-aa771bff46e2" >
 		<os:store doc:name="message_error_uuid" doc:id="41fd2706-ac4f-4f3b-bc7a-417347e1a532" key='#["message_error_" ++ correlationId]' >
