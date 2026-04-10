@@ -108,8 +108,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<http:request doc:name="POST /weatherSnapshot" doc:id="a7f95f2d-06f3-45b6-a96b-a133e987fe58" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" target="weatherSnapshotResult" />
-		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="country.city.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
+		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="weather.enriched.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
 			<amqp:routing-keys >
 				<amqp:routing-key value="weather.snapshot.fetched" />
 			</amqp:routing-keys>
@@ -125,6 +124,19 @@ output application/json
 			</on-error-continue>
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2d7e96f5-d74c-4fd1-b437-15782572d2ae" >
 				<flow-ref doc:name="saveErrorToObjectStore" doc:id="e55e3a31-241d-4ec6-bec5-a83241ad19e0" name="saveErrorToObjectStore" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="amqpListener_saveWeatherToDB" doc:id="97e1226a-5b45-458e-b211-2b1f640ca900" >
+		<amqp:listener doc:name="Listener" doc:id="23678821-00f3-4452-8315-bba5d0b7a3ad" config-ref="AMQP_Config1" queueName="weather.db.persist" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2"/>
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="c9477f7e-15bd-41cb-835d-42ab5c8ce6ce" variableName="ackId" />
+		<http:request doc:name="POST /weatherSnapshot" doc:id="1fbecec2-cc1d-4265-bdd0-ede3649a20ff" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot"/>
+		<amqp:ack doc:name="Ack" doc:id="13f586ac-b7a7-412b-824f-21a919284b9f" ackId="#[vars.ackId]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ef907841-bc68-4ceb-a798-5a2beb75175d" >
+				<flow-ref doc:name="saveErrorToObjectStore" doc:id="1b96ef06-68f1-4291-be39-32bfcdf59d13" name="saveErrorToObjectStore" />
 			</on-error-propagate>
 		</error-handler>
 	</flow>
@@ -167,6 +179,10 @@ output application/json
 	<flow name="alertDLQ_Listener" doc:id="bad66bea-03d2-41c0-a5ee-dec1e1128a33">
 		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="3f7d726e-a640-4871-b38b-1a3ecb3d5eb3" queueName="alert.evaluate.dlq" ackMode="MANUAL" config-ref="AMQP_Config1"/>
 		<flow-ref doc:name="processDeadLetter" doc:id="4edb0140-efa0-4b06-9a09-c4de9b38696f" name="processDeadLetter" />
+	</flow>
+	<flow name="dbDLQ_listener" doc:id="487f2ab7-8f7d-4c17-91e9-92f84439afb9">
+		<amqp:listener doc:name="weather.db.persist.dlq" doc:id="e8fa5a83-b5c5-45ea-aa56-dc911810a1e9" config-ref="AMQP_Config1" queueName="weather.db.persist.dlq" ackMode="MANUAL" />
+		<flow-ref doc:name="processDeadLetter" doc:id="d1cb0c3c-5df0-4b34-8536-0f509fe9ed17" name="processDeadLetter" />
 	</flow>
 	<sub-flow name="processDeadLetter" doc:id="3db79f3f-641b-4346-a71e-6542601b17dd" >
 		<os:retrieve doc:name="message_error_uuid" doc:id="53e401f8-35c7-4ab6-8a94-1d379e6c0269" key='#["message_error_" ++ correlationId]' target="error" >
