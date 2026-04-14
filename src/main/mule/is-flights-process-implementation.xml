@@ -65,6 +65,16 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 			</amqp:message>
 		</amqp:publish>
 	</sub-flow>
+	<sub-flow name="publishWeatherSnapshotMessage" doc:id="804feaa6-8ff3-4941-bd9b-98e7cfba31cf" >
+		<amqp:publish doc:name="Publish" doc:id="237fd0ef-51d1-4735-8965-3fd7375f5b1b" config-ref="AMQP_Config1" exchangeName="weather.enriched.topic" deliveryMode="PERSISTENT" >
+			<amqp:routing-keys >
+				<amqp:routing-key value="weather.snapshot.fetched" />
+			</amqp:routing-keys>
+			<amqp:message >
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
+		</amqp:publish>
+	</sub-flow>
 	<flow name="amqpListener_weatherSnapshotProcess" doc:id="64bdf0b8-367a-4783-93ab-9386452fa455" >
 		<amqp:listener doc:name="Listener" doc:id="132ddb35-0079-4cd0-aa47-5d3a3856f195" queueName="country.city.queue" ackMode="MANUAL" config-ref="AMQP_Config1" numberOfConsumers="5">
 			<redelivery-policy maxRedeliveryCount="2"/>
@@ -109,14 +119,7 @@ output application/json
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<amqp:publish doc:name="Publish" doc:id="14748407-0762-4709-b7b5-4f25f724ddeb" exchangeName="weather.enriched.topic" deliveryMode="PERSISTENT" config-ref="AMQP_Config1">
-			<amqp:routing-keys >
-				<amqp:routing-key value="weather.snapshot.fetched" />
-			</amqp:routing-keys>
-			<amqp:message >
-				<amqp:properties correlationId="#[uuid()]" />
-			</amqp:message>
-		</amqp:publish>
+		<flow-ref doc:name="publishWeatherSnapshotMessage" doc:id="aea8c6c5-1afb-4b37-8eef-91c7556c4591" name="publishWeatherSnapshotMessage"/>
 		<amqp:ack doc:name="Ack" doc:id="68d1b793-fa60-47fe-945c-9306244c96a3" ackId="#[vars.ackId]"/>
 		<error-handler ref="amqp_error_handler" />
 	</flow>

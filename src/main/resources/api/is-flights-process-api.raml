@@ -63,3 +63,13 @@ types:
         body:
           application/json:
             example: !include examples/weather-db-example.json
+          
+  /publish:
+    post:
+      description: Publish weather snapshot to queue
+      body:
+        application/json:
+          example: !include examples/weather-db-example.json
+      responses:
+        202:
+          description: Weather snapshot published.
