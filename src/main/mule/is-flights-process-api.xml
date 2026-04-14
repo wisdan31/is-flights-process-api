@@ -38,7 +38,7 @@
         <flow-ref doc:name="getWeatherSnapshot" doc:id="fa0b575a-2f7a-499f-ab9d-406eb8718019" name="getWeatherSnapshot" />
     </flow>
     <flow name="post:\countries\publishEvent:application\json:is-flights-process-api-config">
-		<flow-ref doc:name="publishCountryEvent" doc:id="58c4e5b7-ac7e-407a-b225-7ee0b3f20914" name="publishCountryEvent"/>
+        <flow-ref doc:name="publishCountryEvent" doc:id="58c4e5b7-ac7e-407a-b225-7ee0b3f20914" name="publishCountryEvent" />
     </flow>
     <flow name="post:\countries\triggerScheduler:is-flights-process-api-config">
         <flow-ref doc:name="publishCountries" doc:id="ecca682d-850c-41c5-98e9-e5dec32dc2c9" name="publishCountries" />
@@ -51,4 +51,7 @@
 		</scheduler>
 		<flow-ref doc:name="publishCountries" doc:id="f7d3fbbf-55d9-4fc5-bbb0-452003ca3856" name="publishCountries"/>
 	</flow> [STUDIO] -->
+    <flow name="post:\weatherSnapshot\publish:application\json:is-flights-process-api-config">
+		<flow-ref doc:name="publishWeatherSnapshotMessage" doc:id="e4b755f3-2cac-42af-ba10-cccace0a8b21" name="publishWeatherSnapshotMessage"/>
+    </flow>
 </mule>
