@@ -143,11 +143,58 @@ output application/json
 		<set-variable value="#[payload.capital.city]" doc:name="city" doc:id="78918a52-389c-4230-86a8-d2015fd36ffa" variableName="city"/>
 		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="3e5f645e-b003-413a-9041-f68c8f061ed4" variableName="visibility" />
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
-			<when expression="#[vars.visibility &lt; 3000]">
+			<when expression="#[vars.visibility &lt; 3000]" >
 				<set-variable value="LOW" doc:name="visibilityStatus" doc:id="85228e82-d4e6-44ec-ba3b-19f6cf9cd20b" variableName="visibilityStatus" />
+				<scatter-gather doc:name="Scatter-Gather" doc:id="fd038826-abdd-4b6b-b6f4-5eba532bd3e5" >
+					<route >
+						<ee:transform doc:name="Set document" doc:id="229e7c4f-3a0e-4551-8826-0ac078711178">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "timestamp": payload.lastUpdated default now(),
+  "city": vars.city default "UNKNOWN",
+  "severity": vars.visibilityStatus default "CRITICAL",
+  "visibility": vars.visibility default "UNKNOWN",
+  "message": "Logistics halted due to severe visibility conditions."
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<flow-ref doc:name="saveAlertToDb" doc:id="0e991dea-59e4-42dd-94a3-4d7d1088fa3a" name="saveAlertToDb" />
+					</route>
+					<route >
+						<ee:transform doc:name="Set message" doc:id="3a3f4d20-9c76-420c-8b17-f602b60d6720">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "text": "🚨 *CRITICAL WEATHER ALERT* 🚨\nCity: " ++ vars.city ++ "\nVisibility: " ++ vars.visibility ++ "m\nAction Required: Halt logistics."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+						<flow-ref doc:name="sendToSlack" doc:id="ef40c5e3-5a4f-4cb2-aa6c-107cafca811f" name="sendToSlack" />
+					</route>
+				</scatter-gather>
 			</when>
-			<when expression="#[vars.visibility &lt; 5000]">
-				<set-variable value="MODERATE" doc:name="visibilityStatus" doc:id="322a5dc2-bed3-4408-a79a-b4176dc6fbd1" variableName="visibilityStatus"/>
+			<when expression="#[vars.visibility &lt; 5000]" >
+				<set-variable value="MODERATE" doc:name="visibilityStatus" doc:id="322a5dc2-bed3-4408-a79a-b4176dc6fbd1" variableName="visibilityStatus" />
+				<ee:transform doc:name="Set document" doc:id="d38aa0ea-2cbb-435c-ba4d-413f7256d3d7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "timestamp": payload.lastUpdated default now(),
+  "city": vars.city default "UNKNOWN",
+  "severity": vars.visibilityStatus default "MODERATE",
+  "visibility": vars.visibility default "UNKNOWN",
+  "message": "Logistics halted due to severe visibility conditions."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="saveAlertToDb" doc:id="147318e5-33ac-4d68-a37a-6e90bbce87cf" name="saveAlertToDb" />
 			</when>
 			<otherwise>
 				<set-variable value="CLEAR" doc:name="visibilityStatus" doc:id="18a65394-0b51-4407-a4c7-8bd07f7d8feb" variableName="visibilityStatus" />
@@ -157,6 +204,12 @@ output application/json
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 		<error-handler ref="amqp_error_handler" />
 	</flow>
+	<sub-flow name="sendToSlack" doc:id="13a97f18-668f-4789-b442-9f64f9f332af" >
+		<http:request doc:name="POST /slack" doc:id="a89a14db-aa81-4130-8ed0-39b8a6e837fe" config-ref="HTTP_System_Api_config" method="POST" path="/slack"/>
+	</sub-flow>
+	<sub-flow name="saveAlertToDb" doc:id="3d720ce1-9c01-4cff-a729-b3426eb8b214" >
+		<http:request doc:name="POST /alerts" doc:id="56323e89-8b58-43a7-8769-8ad0777501d8" config-ref="HTTP_System_Api_config" method="POST" path="/alerts"/>
+	</sub-flow>
 	<flow name="countryDLQ_Listener" doc:id="3cb648d3-75c6-4c38-aa1d-f02a8e3bbfda">
 		<amqp:listener doc:name="country.city.queue.dlq" doc:id="e31419f9-1741-4245-8236-4294aafe586b" queueName="country.city.queue.dlq" ackMode="MANUAL" config-ref="AMQP_Config1"/>
 		<flow-ref doc:name="processDeadLetter" doc:id="c738fb27-a249-4b61-90e6-31dffd196f1a" name="processDeadLetter"/>
