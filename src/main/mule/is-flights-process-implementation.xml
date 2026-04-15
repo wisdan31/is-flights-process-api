@@ -190,7 +190,7 @@ output application/json
   "city": vars.city default "UNKNOWN",
   "severity": vars.visibilityStatus default "MODERATE",
   "visibility": vars.visibility default "UNKNOWN",
-  "message": "Logistics halted due to severe visibility conditions."
+  "message": "Logistics impacted due to moderate visibility conditions."
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
