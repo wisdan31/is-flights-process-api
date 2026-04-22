@@ -1,3 +1,5 @@
+# This file is outdated and is not used in the tests anymore. It is kept here for reference and can be deleted in the future if not needed.
+
 NegativeVisibility:
   visibilityValue: -1
   expectedStatus: "LOW"
