@@ -157,6 +157,14 @@
 					<munit-tools:with-attribute whereValue="/alerts" attributeName="path" />
 				</munit-tools:with-attributes>
 			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="POST /slack" doc:id="82992e38-6161-4320-9b52-87a2f83b2293" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST /slack" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="HTTP_System_Api_config" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="/slack" attributeName="path" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
 		</munit:behavior>
 		<munit:execution >
 			<munit:set-event doc:name="Set Event" doc:id="7f2d4676-2257-4f2c-8068-b81594ad82c6" >
@@ -189,6 +197,22 @@
 			<munit-tools:mock-when doc:name="Ack" doc:id="345c2ce5-5288-45b3-9fb7-2e9fb2fa9cdf" processor="amqp:ack" >
 				<munit-tools:with-attributes >
 					<munit-tools:with-attribute whereValue="Ack" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="POST /slack" doc:id="e1f16cfc-18d3-4dbf-93cc-a783114a2708" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST /slack" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="HTTP_System_Api_config" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="/slack" attributeName="path" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="POST /alerts" doc:id="97b40c90-7778-46a2-ba50-e9d46824162f" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST /alerts" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="HTTP_System_Api_config" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="/alerts" attributeName="path" />
 				</munit-tools:with-attributes>
 			</munit-tools:mock-when>
 		</munit:behavior>
