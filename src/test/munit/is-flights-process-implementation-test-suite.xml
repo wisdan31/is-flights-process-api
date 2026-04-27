@@ -348,6 +348,11 @@
 					<munit-tools:with-attribute whereValue="message_error_uuid" attributeName="doc:name" />
 				</munit-tools:with-attributes>
 			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Reject" doc:id="567e34f2-d8e0-4fa0-a773-3475cd43d72c" processor="amqp:reject">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Reject" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
 		</munit:validation>
 	</munit:test>
 
