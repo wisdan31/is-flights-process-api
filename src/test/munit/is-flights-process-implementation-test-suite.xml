@@ -221,7 +221,7 @@
 				<munit:payload value='#[output application/json --- readUrl("classpath://inputs/alert_consumer-weather-snapshot.json", "application/json") update {case .capital.weatherConditions.visibility -&gt; 10000 as Number}]' />
 				<munit:attributes value='#[{ackId: "123"}]' />
 			</munit:set-event>
-			<flow-ref doc:name="Flow-ref to Alert_Consumer" doc:id="ab7bd522-102d-4e13-80fd-c97657c02f65" name="Alert_Consumer" />
+			<flow-ref doc:name="Alert_Consumer" doc:id="ab7bd522-102d-4e13-80fd-c97657c02f65" name="Alert_Consumer" />
 		</munit:execution>
 		<munit:validation >
 			<munit-tools:verify-call doc:name="POST /slack" doc:id="3cf373fc-6e24-4d87-8ef1-2676988cb091" processor="http:request" times="0" >
