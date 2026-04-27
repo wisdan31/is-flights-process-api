@@ -1,0 +1,21 @@
+{
+  "location": {
+    "city": "Kyiv",
+    "lon": 30.5167,
+    "lat": 50.4333
+  },
+  "weather": {
+    "main": "Clouds",
+    "description": "overcast clouds",
+    "temperature": 10.0,
+    "pressure": 1000,
+    "humidity": 50,
+    "visibility": 10000,
+    "wind": {
+      "speed": 10.0,
+      "deg": 100
+    },
+    "snow": 0,
+    "clouds": 100
+  }
+}
