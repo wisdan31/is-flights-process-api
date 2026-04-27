@@ -284,6 +284,18 @@
 		</munit:execution>
 		<munit:validation>
 			<munit-tools:assert-equals doc:name="Assert equals" doc:id="abb7c936-7020-4ebe-a2c4-b36a7e960883" actual="#[payload - 'lastUpdated']" expected="#[readUrl('classpath://asserts/alert_consumer-success-payload.json', 'application/json') - 'lastUpdated']"/>
+			<munit-tools:verify-call doc:name="publishWeatherSnapshotMessage" doc:id="4006086f-75fb-4e44-b690-ac21710ac70e" processor="amqp:publish" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Publish" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="AMQP_Config1" attributeName="config-ref" />
+					<munit-tools:with-attribute whereValue="weather.enriched.topic" attributeName="exchangeName" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Ack" doc:id="a6eae469-9ea8-4fc6-a525-ace6e84924a8" processor="amqp:ack" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Ack" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
 		</munit:validation>
 	</munit:test>
 	<munit:test name="weatherSnapshotProcess-error-test" doc:id="cefe392a-cb52-447a-a0ef-0858a41cb4ad" description="Test">
