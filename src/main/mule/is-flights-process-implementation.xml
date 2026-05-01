@@ -226,6 +226,10 @@ output application/json
 		<amqp:listener doc:name="weather.db.persist.dlq" doc:id="e8fa5a83-b5c5-45ea-aa56-dc911810a1e9" config-ref="AMQP_Config1" queueName="weather.db.persist.dlq" ackMode="MANUAL" />
 		<flow-ref doc:name="processDeadLetter" doc:id="d1cb0c3c-5df0-4b34-8536-0f509fe9ed17" name="processDeadLetter" />
 	</flow>
+	<flow name="alert.slack.dlq_listener" doc:id="e288e557-2a93-4d6b-995e-1ba80b8711d0">
+		<amqp:listener doc:name="alert.slack.dlq" doc:id="ae38aa0e-447e-41ed-9254-a49c85ddf348" config-ref="AMQP_Config1" queueName="alert.slack.dlq" ackMode="MANUAL" />
+		<flow-ref doc:name="processDeadLetter" doc:id="18805975-9b83-4fcd-9000-3ea3655894ff" name="processDeadLetter" />
+	</flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="ae6fd0c0-8ecb-4c30-9eb3-9062ac5ff3ef">
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="726c6aa6-a34a-42ce-ae9c-7ac35618a4d2" variableName="countryCode" />
 		<http:request doc:name="GET /weatherSnapshot" doc:id="8ec9b0c5-c44d-4bf2-8e1b-b50b05057fe5" config-ref="HTTP_System_Api_config" path="/weatherSnapshot">
@@ -240,8 +244,4 @@ output application/json
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="6dba00fc-5959-426d-90cf-05d125d74856" name="responseProcessingSubFlow" />
 	</sub-flow>
-	<flow name="alert.slack.dlq_listener" doc:id="e288e557-2a93-4d6b-995e-1ba80b8711d0" >
-		<amqp:listener doc:name="alert.slack.dlq" doc:id="ae38aa0e-447e-41ed-9254-a49c85ddf348" config-ref="AMQP_Config1" queueName="alert.slack.dlq" ackMode="MANUAL" />
-		<flow-ref doc:name="processDeadLetter" doc:id="18805975-9b83-4fcd-9000-3ea3655894ff" name="processDeadLetter" />
-	</flow>
 </mule>
