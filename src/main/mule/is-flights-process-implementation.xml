@@ -170,10 +170,13 @@ output application/json
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-				<amqp:publish doc:name="alert.slack" doc:id="d918fe8c-960c-46ac-8e8e-d85dd7d372f0" config-ref="AMQP_Config1" exchangeName="alert.notifications.topic">
+				<amqp:publish doc:name="alert.slack" doc:id="d918fe8c-960c-46ac-8e8e-d85dd7d372f0" config-ref="AMQP_Config1" exchangeName="alert.notifications.topic" deliveryMode="PERSISTENT">
 					<amqp:routing-keys >
 						<amqp:routing-key value="alert.critical" />
 					</amqp:routing-keys>
+					<amqp:message >
+						<amqp:properties correlationId="#[uuid()]" />
+					</amqp:message>
 				</amqp:publish>
 			</when>
 			<when expression="#[vars.visibility &lt; 5000]" >
