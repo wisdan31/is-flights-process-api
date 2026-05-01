@@ -349,7 +349,7 @@
 			</munit-tools:verify-call>
 		</munit:validation>
 	</munit:test>
-	<munit:test name="alert_consumer-error-path" doc:id="ad8e3a00-9acc-4f4a-b29d-cd771001f0f4" description="Test" expectedErrorType="HTTP:TIMEOUT">
+	<munit:test name="alert_consumer-error-path-test" doc:id="ad8e3a00-9acc-4f4a-b29d-cd771001f0f4" description="Test" expectedErrorType="HTTP:TIMEOUT">
 		<munit:behavior >
 			<munit-tools:mock-when doc:name="Ack" doc:id="423a591a-17aa-47a4-ad2f-7ea94105c6d7" processor="amqp:ack" >
 				<munit-tools:with-attributes >
