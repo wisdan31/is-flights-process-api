@@ -145,9 +145,7 @@ output application/json
 		<choice doc:name="Visibility tier" doc:id="ae135edf-c12b-4299-8f16-576f2fba5187" >
 			<when expression="#[vars.visibility &lt; 3000]" >
 				<set-variable value="LOW" doc:name="visibilityStatus" doc:id="85228e82-d4e6-44ec-ba3b-19f6cf9cd20b" variableName="visibilityStatus" />
-				<scatter-gather doc:name="Scatter-Gather" doc:id="fd038826-abdd-4b6b-b6f4-5eba532bd3e5" >
-					<route >
-						<ee:transform doc:name="Set document" doc:id="229e7c4f-3a0e-4551-8826-0ac078711178">
+				<ee:transform doc:name="Set document" doc:id="229e7c4f-3a0e-4551-8826-0ac078711178">
 							<ee:message>
 								<ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -161,10 +159,8 @@ output application/json
 }]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
-						<flow-ref doc:name="saveAlertToDb" doc:id="0e991dea-59e4-42dd-94a3-4d7d1088fa3a" name="saveAlertToDb" />
-					</route>
-					<route >
-						<ee:transform doc:name="Set message" doc:id="3a3f4d20-9c76-420c-8b17-f602b60d6720">
+				<flow-ref doc:name="saveAlertToDb" doc:id="0e991dea-59e4-42dd-94a3-4d7d1088fa3a" name="saveAlertToDb" />
+				<ee:transform doc:name="Set message" doc:id="3a3f4d20-9c76-420c-8b17-f602b60d6720">
 					<ee:message>
 						<ee:set-payload><![CDATA[%dw 2.0
 output application/json
@@ -174,9 +170,11 @@ output application/json
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
-						<flow-ref doc:name="sendToSlack" doc:id="ef40c5e3-5a4f-4cb2-aa6c-107cafca811f" name="sendToSlack" />
-					</route>
-				</scatter-gather>
+				<amqp:publish doc:name="alert.slack" doc:id="d918fe8c-960c-46ac-8e8e-d85dd7d372f0" config-ref="AMQP_Config1" exchangeName="alert.notifications.topic">
+					<amqp:routing-keys >
+						<amqp:routing-key value="alert.critical" />
+					</amqp:routing-keys>
+				</amqp:publish>
 			</when>
 			<when expression="#[vars.visibility &lt; 5000]" >
 				<set-variable value="MODERATE" doc:name="visibilityStatus" doc:id="322a5dc2-bed3-4408-a79a-b4176dc6fbd1" variableName="visibilityStatus" />
@@ -204,9 +202,15 @@ output application/json
 		<amqp:ack doc:name="Ack" doc:id="f4b1ca69-43b9-43ee-acb0-10ffeea84270" ackId="#[vars.ackId]" />
 		<error-handler ref="amqp_error_handler" />
 	</flow>
-	<sub-flow name="sendToSlack" doc:id="13a97f18-668f-4789-b442-9f64f9f332af" >
-		<http:request doc:name="POST /slack" doc:id="a89a14db-aa81-4130-8ed0-39b8a6e837fe" config-ref="HTTP_System_Api_config" method="POST" path="/slack"/>
-	</sub-flow>
+	<flow name="alert.slack_listener" doc:id="54a0d2f7-577f-4e4c-87a8-772ac9558c9c" >
+		<amqp:listener doc:name="alert.slack" doc:id="90f4a0d9-12bd-4a10-ac2f-0b15a20dead1" config-ref="AMQP_Config1" queueName="alert.slack" ackMode="MANUAL">
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="bbec33f7-8e69-4823-92ea-16ffe6fcf3fe" variableName="ackId" />
+		<http:request doc:name="POST /slack" doc:id="a89a14db-aa81-4130-8ed0-39b8a6e837fe" config-ref="HTTP_System_Api_config" method="POST" path="/slack123" />
+		<amqp:ack doc:name="Ack" doc:id="e5dd119d-71bf-47db-9123-ea1f8b0a5127" ackId="#[vars.ackId]" />
+		<error-handler ref="amqp_error_handler" />
+	</flow>
 	<sub-flow name="saveAlertToDb" doc:id="3d720ce1-9c01-4cff-a729-b3426eb8b214" >
 		<http:request doc:name="POST /alerts" doc:id="56323e89-8b58-43a7-8769-8ad0777501d8" config-ref="HTTP_System_Api_config" method="POST" path="/alerts"/>
 	</sub-flow>
@@ -236,4 +240,8 @@ output application/json
 		</http:request>
 		<flow-ref doc:name="responseProcesingSubFlow" doc:id="6dba00fc-5959-426d-90cf-05d125d74856" name="responseProcessingSubFlow" />
 	</sub-flow>
+	<flow name="alert.slack.dlq_listener" doc:id="e288e557-2a93-4d6b-995e-1ba80b8711d0" >
+		<amqp:listener doc:name="alert.slack.dlq" doc:id="ae38aa0e-447e-41ed-9254-a49c85ddf348" config-ref="AMQP_Config1" queueName="alert.slack.dlq" ackMode="MANUAL" />
+		<flow-ref doc:name="processDeadLetter" doc:id="18805975-9b83-4fcd-9000-3ea3655894ff" name="processDeadLetter" />
+	</flow>
 </mule>
