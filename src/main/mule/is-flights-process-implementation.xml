@@ -207,7 +207,7 @@ output application/json
 			<redelivery-policy maxRedeliveryCount="2" />
 		</amqp:listener>
 		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="bbec33f7-8e69-4823-92ea-16ffe6fcf3fe" variableName="ackId" />
-		<http:request doc:name="POST /slack" doc:id="a89a14db-aa81-4130-8ed0-39b8a6e837fe" config-ref="HTTP_System_Api_config" method="POST" path="/slack123" />
+		<http:request doc:name="POST /slack" doc:id="a89a14db-aa81-4130-8ed0-39b8a6e837fe" config-ref="HTTP_System_Api_config" method="POST" path="/slack" />
 		<amqp:ack doc:name="Ack" doc:id="e5dd119d-71bf-47db-9123-ea1f8b0a5127" ackId="#[vars.ackId]" />
 		<error-handler ref="amqp_error_handler" />
 	</flow>
