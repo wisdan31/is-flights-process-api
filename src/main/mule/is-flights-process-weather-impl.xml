@@ -181,22 +181,6 @@ output application/json
 	<sub-flow name="saveAlertToDb" doc:id="e47759d9-9a90-4668-92ec-786faf77bea5" >
 		<http:request doc:name="POST /alerts" doc:id="cc3f3524-f6b3-4c1e-bb05-27109090dc16" config-ref="HTTP_System_Api_config" method="POST" path="/alerts" />
 	</sub-flow>
-	<flow name="countryDLQ_Listener" doc:id="84e72282-cc28-4215-be42-dc35719b2789" >
-		<amqp:listener doc:name="country.city.queue.dlq" doc:id="1d302703-5fb8-467b-8ec6-dd605c197762" config-ref="AMQP_Config1" queueName="country.city.queue.dlq" ackMode="MANUAL" />
-		<flow-ref doc:name="processDeadLetter" doc:id="775216a6-4c2f-4e63-b054-85d9065116fa" name="processDeadLetter" />
-	</flow>
-	<flow name="alertDLQ_Listener" doc:id="ced5710b-997e-4e74-8077-798cd2cb0823" >
-		<amqp:listener doc:name="alert.evaluate.dlq" doc:id="f9235b58-5657-4f92-af7f-3a1b52d179e1" config-ref="AMQP_Config1" queueName="alert.evaluate.dlq" ackMode="MANUAL" />
-		<flow-ref doc:name="processDeadLetter" doc:id="861385d2-0557-4c0f-a8ae-8a0fade7c2cf" name="processDeadLetter" />
-	</flow>
-	<flow name="dbDLQ_listener" doc:id="3cbfd77d-7571-4173-9f43-20d8025e44cd" >
-		<amqp:listener doc:name="weather.db.persist.dlq" doc:id="7b3df441-749d-4484-b784-c9798c2ab26f" config-ref="AMQP_Config1" queueName="weather.db.persist.dlq" ackMode="MANUAL" />
-		<flow-ref doc:name="processDeadLetter" doc:id="f87047d4-8c82-43d3-984c-b260f78ca739" name="processDeadLetter" />
-	</flow>
-	<flow name="alert.slack.dlq_listener" doc:id="b5641d68-98fa-4f0e-b135-0664e92f7eee" >
-		<amqp:listener doc:name="alert.slack.dlq" doc:id="bdd8a0d2-1268-4f6a-bbd0-f465517e2a70" config-ref="AMQP_Config1" queueName="alert.slack.dlq" ackMode="MANUAL" />
-		<flow-ref doc:name="processDeadLetter" doc:id="e9340ef4-8367-4955-8f67-2d327f0e9df2" name="processDeadLetter" />
-	</flow>
 	<sub-flow name="getWeatherSnapshot" doc:id="d455b31c-8c23-45bc-9963-750d66901aad" >
 		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="292162ec-856c-4d02-85ab-8df214c41722" variableName="countryCode" />
 		<http:request doc:name="GET /weatherSnapshot" doc:id="4284f6d0-bd8a-4474-a91e-d6c74813a800" config-ref="HTTP_System_Api_config" path="/weatherSnapshot" >
