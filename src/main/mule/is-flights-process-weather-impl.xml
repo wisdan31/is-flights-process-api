@@ -193,6 +193,6 @@ output application/json
 				<http:success-status-code-validator values="200..599" />
 			</http:response-validator>
 		</http:request>
-		<flow-ref doc:name="responseProcesingSubFlow" doc:id="41c12727-845d-44b2-a398-ba47609ae5cc" name="responseProcessingSubFlow" />
+		<flow-ref doc:name="responseProcessingSubFlow" doc:id="41c12727-845d-44b2-a398-ba47609ae5cc" name="responseProcessingSubFlow" />
 	</sub-flow>
 </mule>
