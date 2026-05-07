@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="publishCountries" doc:id="eaa145d6-8e33-4a3f-91f7-e63bc4887acb" >
+		<http:request doc:name="GET /countries" doc:id="e790f8b8-0585-4314-a63e-50363bbfa745" config-ref="HTTP_System_Api_config" path="/countries" >
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"subregion" : "Eastern Europe"
+}]]]></http:query-params>
+		</http:request>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="5f2e1d32-f119-4fef-bc7a-88c553f0978d" >
+			<flow-ref doc:name="publishCountryEvent" doc:id="bc84c56b-72ea-4324-9532-8924956dabe1" name="publishCountryEvent" />
+		</parallel-foreach>
+		<set-payload value="Countries published." doc:name="Countries published" doc:id="b60c1cdb-cf47-4469-9355-6099d8a1892a" />
+	</sub-flow>
+	<sub-flow name="publishCountryEvent" doc:id="d664ec99-2e70-4a81-9deb-cd304c06cdf0" >
+		<set-variable value="#[payload.name]" doc:name="country" doc:id="71493983-114a-44dd-8509-499c26c88309" variableName="country" />
+		<set-variable value="#[payload.capital.name]" doc:name="city" doc:id="1f558d5f-626f-4f9c-90d7-09a38d8386c5" variableName="city" />
+		<amqp:publish doc:name="Publish" doc:id="92c03ac3-620d-42b1-acbb-184a0ecd3074" config-ref="AMQP_Config1" exchangeName="country.city.topic" deliveryMode="PERSISTENT" routingKeys='#[[ (lower(vars.country default "") replace /[ .]+/ with "-") ++ "." ++ (lower(vars.city default "") replace /[ .]+/ with "-") ++ ".updated" ]]' >
+			<amqp:message >
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
+		</amqp:publish>
+	</sub-flow>
+	<flow name="amqpListener_weatherSnapshotProcess" doc:id="12fc2f09-cb3b-4290-8f5b-e5481dbfdf5f" >
+		<amqp:listener doc:name="Listener" doc:id="515fdb8f-f870-4a3e-9413-f1b781d36718" config-ref="AMQP_Config1" queueName="country.city.queue" ackMode="MANUAL" numberOfConsumers="5" >
+			<redelivery-policy maxRedeliveryCount="2" />
+			<amqp:listener-quality-of-service-config prefetchCount="1" />
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="4f3165d7-cb52-41dc-aa5d-3c0f7a5bf4e1" variableName="ackId" />
+		<json:validate-schema doc:name="Validate schema" doc:id="b6785669-a0ce-4d93-bfdd-43184dc15469" schema="api/schemas/country-schema.json" >
+			<error-mapping sourceType="JSON:SCHEMA_NOT_HONOURED" targetType="MESSAGE:POISONOUS" />
+		</json:validate-schema>
+		<http:request doc:name="GET /weather" doc:id="8d7b5ff3-9998-4b60-bb23-b673a75435c9" config-ref="HTTP_System_Api_config" path="/weather" target="weatherData" >
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"city" : payload.capital.name
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Create weather snapshot" doc:id="d42f4c39-c100-4ac0-b9d3-ddae29f72ac2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  country: payload.name,
+  countryCode: upper(payload.code default ""),
+  capital: {
+    city: payload.capital.name,
+    longitude: vars.weatherData.location.lon default payload.capital.lng,
+    latitude: vars.weatherData.location.lat default payload.capital.lat,
+    weatherConditions: {
+      visibility: vars.weatherData.weather.visibility default 0,
+      temperature: { 
+        degrees: "Celsius", 
+        current: vars.weatherData.weather.temperature default 0 
+
+      },
+      pressure: vars.weatherData.weather.pressure default 0,
+      humidity: vars.weatherData.weather.humidity default 0,
+      wind: vars.weatherData.weather.wind
+    }
+  },
+  lastUpdated: (now() >> "UTC") as String {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="publishWeatherSnapshotMessage" doc:id="ee61767b-3231-4b7d-ad91-e7c0fd0659a4" name="publishWeatherSnapshotMessage"/>
+		<amqp:ack doc:name="Ack" doc:id="4e90074a-366c-4d12-bf62-d27e363b2a55" ackId="#[vars.ackId]" />
+		<error-handler ref="amqp_error_handler" />
+	</flow>
+	<sub-flow name="publishWeatherSnapshotMessage" doc:id="43af152f-1108-42c3-9dd5-84f44f0eaa1b" >
+		<amqp:publish doc:name="Publish" doc:id="72efc649-3f59-45d3-9845-5e33837a8b94" config-ref="AMQP_Config1" exchangeName="weather.enriched.topic" deliveryMode="PERSISTENT" >
+			<amqp:routing-keys >
+				<amqp:routing-key value="weather.snapshot.fetched" />
+			</amqp:routing-keys>
+			<amqp:message >
+				<amqp:properties correlationId="#[uuid()]" />
+			</amqp:message>
+		</amqp:publish>
+	</sub-flow>
+	<flow name="amqpListener_saveWeatherToDB" doc:id="04590207-3fe5-4f03-8f5b-d3414e4f44d0" >
+		<amqp:listener doc:name="Listener" doc:id="eda76927-4427-49ea-9e47-71454c471f14" config-ref="AMQP_Config1" queueName="weather.db.persist" ackMode="MANUAL" >
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="f48b4535-82ab-4188-a329-ff9c5bb2a1c5" variableName="ackId" />
+		<http:request doc:name="POST /weatherSnapshot" doc:id="a09710d0-9c2d-41df-afcf-f80aac32bd45" config-ref="HTTP_System_Api_config" method="POST" path="/weatherSnapshot" />
+		<amqp:ack doc:name="Ack" doc:id="b402b009-6e1f-4bb8-ad44-3a61af59d565" ackId="#[vars.ackId]" />
+		<error-handler ref="amqp_error_handler" />
+	</flow>
+	<flow name="Alert_Consumer" doc:id="1e9915f9-35ef-45d8-beec-1fb544754342" >
+		<amqp:listener doc:name="Listener" doc:id="b2ed1296-2d60-45aa-832d-7f4170914801" config-ref="AMQP_Config1" queueName="alert.evaluate" ackMode="MANUAL" >
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="51aa42be-b041-4914-b65c-dc963b01263f" variableName="ackId" />
+		<json:validate-schema doc:name="Validate schema" doc:id="1dad1a5a-a9c8-45ca-b93d-6ad27181efe7" schema="api/schemas/weather-schema.json" >
+			<error-mapping sourceType="JSON:SCHEMA_NOT_HONOURED" targetType="MESSAGE:POISONOUS" />
+		</json:validate-schema>
+		<set-variable value="#[payload.capital.city]" doc:name="city" doc:id="76446936-699b-4812-9dc7-38ac7d529758" variableName="city" />
+		<set-variable value="#[payload.capital.weatherConditions.visibility]" doc:name="visibility" doc:id="b329b607-3e00-4921-b2ec-25a7a9dbf8da" variableName="visibility" />
+		<choice doc:name="Visibility tier" doc:id="732c7590-1ed8-4a97-9b82-1727c872952b" >
+			<when expression="#[vars.visibility &lt; 3000]" >
+				<set-variable value="LOW" doc:name="visibilityStatus" doc:id="6ccc2768-5033-4677-94e8-af3865271c4a" variableName="visibilityStatus" />
+				<ee:transform doc:name="Set document" doc:id="9d1c4ac9-c38e-44fa-989a-b10327b69fa7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "timestamp": payload.lastUpdated default now(),
+  "city": vars.city default "UNKNOWN",
+  "severity": vars.visibilityStatus default "CRITICAL",
+  "visibility": vars.visibility default "UNKNOWN",
+  "message": "Logistics halted due to severe visibility conditions."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="saveAlertToDb" doc:id="4eead7b7-2fe2-4774-b431-2a1bfce967ca" name="saveAlertToDb" />
+				<ee:transform doc:name="Set message" doc:id="6037a17a-7720-47e1-b2bb-26ec126955a9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "text": "🚨 *CRITICAL WEATHER ALERT* 🚨\nCity: " ++ vars.city ++ "\nVisibility: " ++ vars.visibility ++ "m\nAction Required: Halt logistics."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<amqp:publish doc:name="alert.slack" doc:id="f25c473d-f0b2-41cb-8513-e46990394343" config-ref="AMQP_Config1" exchangeName="alert.notifications.topic" deliveryMode="PERSISTENT" >
+					<amqp:routing-keys >
+						<amqp:routing-key value="alert.critical" />
+					</amqp:routing-keys>
+					<amqp:message >
+						<amqp:properties correlationId="#[uuid()]" />
+					</amqp:message>
+				</amqp:publish>
+			</when>
+			<when expression="#[vars.visibility &lt; 5000]" >
+				<set-variable value="MODERATE" doc:name="visibilityStatus" doc:id="3435d255-7956-4337-b899-7f16aa1c6634" variableName="visibilityStatus" />
+				<ee:transform doc:name="Set document" doc:id="7d5a3477-dc2b-407d-8be7-eec5396fbc80" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "timestamp": payload.lastUpdated default now(),
+  "city": vars.city default "UNKNOWN",
+  "severity": vars.visibilityStatus default "MODERATE",
+  "visibility": vars.visibility default "UNKNOWN",
+  "message": "Logistics impacted due to moderate visibility conditions."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="saveAlertToDb" doc:id="e45e09b8-7d22-490f-8929-0fe6f439fddd" name="saveAlertToDb" />
+			</when>
+			<otherwise >
+				<set-variable value="CLEAR" doc:name="visibilityStatus" doc:id="68d02e08-6719-4541-86b8-96bd62c89ebd" variableName="visibilityStatus" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="70ec5be2-a69e-4f61-ad3b-6fe55d57baba" message='#[output text/plain --- "City: $(vars.city). Visibility status: $(vars.visibilityStatus)"]' />
+		<amqp:ack doc:name="Ack" doc:id="0667b831-2735-46ed-aeef-3bd4e2d775ac" ackId="#[vars.ackId]" />
+		<error-handler ref="amqp_error_handler" />
+	</flow>
+	<flow name="alert.slack_listener" doc:id="6eb567cb-5580-4845-8d0c-95a87736fe66" >
+		<amqp:listener doc:name="alert.slack" doc:id="a86dc61e-bd44-49ae-9d01-2953f80148e5" config-ref="AMQP_Config1" queueName="alert.slack" ackMode="MANUAL" >
+			<redelivery-policy maxRedeliveryCount="2" />
+		</amqp:listener>
+		<set-variable value="#[attributes.ackId]" doc:name="ackId" doc:id="a3f90f3f-36ca-4761-8fb6-66b11c742dc8" variableName="ackId" />
+		<http:request doc:name="POST /slack" doc:id="596f4e26-b714-47a6-ae39-49f75cadbebc" config-ref="HTTP_System_Api_config" method="POST" path="/slack" />
+		<amqp:ack doc:name="Ack" doc:id="ea412cfe-d9c2-4d9a-86f8-4ff702d3c28d" ackId="#[vars.ackId]" />
+		<error-handler ref="amqp_error_handler" />
+	</flow>
+	<sub-flow name="saveAlertToDb" doc:id="e47759d9-9a90-4668-92ec-786faf77bea5" >
+		<http:request doc:name="POST /alerts" doc:id="cc3f3524-f6b3-4c1e-bb05-27109090dc16" config-ref="HTTP_System_Api_config" method="POST" path="/alerts" />
+	</sub-flow>
+	<sub-flow name="getWeatherSnapshot" doc:id="d455b31c-8c23-45bc-9963-750d66901aad" >
+		<set-variable value="#[attributes.queryParams.countryCode]" doc:name="countryCode" doc:id="292162ec-856c-4d02-85ab-8df214c41722" variableName="countryCode" />
+		<http:request doc:name="GET /weatherSnapshot" doc:id="4284f6d0-bd8a-4474-a91e-d6c74813a800" config-ref="HTTP_System_Api_config" path="/weatherSnapshot" >
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"countryCode" : vars.countryCode
+}]]]></http:query-params>
+			<http:response-validator >
+				<http:success-status-code-validator values="200..599" />
+			</http:response-validator>
+		</http:request>
+		<flow-ref doc:name="responseProcessingSubFlow" doc:id="41c12727-845d-44b2-a398-ba47609ae5cc" name="responseProcessingSubFlow" />
+	</sub-flow>
+</mule>
